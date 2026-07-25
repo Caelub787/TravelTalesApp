@@ -18,7 +18,9 @@ import { useContentMode } from '@/hooks/use-content-mode';
 import type { Coords } from '@/hooks/use-live-location';
 import type { LocationFactsStatus } from '@/hooks/use-location-facts';
 import { useNearbyArticles } from '@/hooks/use-nearby-articles';
+import { useReadPreference } from '@/hooks/use-read-preference';
 import { useSearchRadius } from '@/hooks/use-search-radius';
+import { useSpeakable } from '@/hooks/use-speakable';
 import type { LocationFactsResponse, NearbyArticle } from '@/services/api';
 import { matchesCategory } from '@/utils/category-match';
 import { distanceMeters } from '@/utils/distance';
@@ -46,12 +48,15 @@ export function LocationExplorer({
 }: Props) {
   const { mode } = useContentMode();
   const { radiusMiles } = useSearchRadius();
+  const { preference: readPreference } = useReadPreference();
+  const { speak } = useSpeakable();
   const { open: openArticle } = useArticleViewer();
   const { result: askResult, status: askStatus, error: askError, ask } = useAskQuestion();
   const { result: nearbyResult, status: nearbyStatus, error: nearbyError, fetchNearby } = useNearbyArticles();
   const [filter, setFilter] = useState<CategoryId | 'all'>('all');
   const lastFetchedCoordsRef = useRef<Coords | null>(null);
   const lastRadiusRef = useRef<number | null>(null);
+  const lastAskWasVoiceRef = useRef(false);
 
   useEffect(() => {
     if (mode !== 'wiki' || !coords) return;
@@ -74,12 +79,29 @@ export function LocationExplorer({
   }, [nearbyResult, filter]);
 
   const handleAsk = useCallback(
-    (question: string) => {
+    (question: string, options?: { viaVoice?: boolean }) => {
       if (!coords) return;
+      lastAskWasVoiceRef.current = Boolean(options?.viaVoice);
       ask(question, coords, placeLabel);
     },
     [coords, placeLabel, ask]
   );
+
+  // A voice-initiated question always gets a spoken answer back (that's the talk-and-listen
+  // loop); a typed one follows the user's general read-aloud preference from Settings.
+  useEffect(() => {
+    if (!askResult || askResult.noVerifiedAnswerFound) return;
+    if (lastAskWasVoiceRef.current || readPreference === 'voice') {
+      speak(askResult.answer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [askResult]);
+
+  useEffect(() => {
+    if (!factsResult || factsResult.noVerifiedFactsFound || readPreference !== 'voice') return;
+    speak(`${factsResult.title}. ${factsResult.summary}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [factsResult]);
 
   const handleSurprise = useCallback(() => {
     if (mode === 'wiki') {

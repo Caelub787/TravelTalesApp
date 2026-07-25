@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useContentMode, type ContentMode } from '@/hooks/use-content-mode';
+import { useReadPreference, type ReadPreference } from '@/hooks/use-read-preference';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ModeOption {
@@ -21,19 +22,43 @@ const OPTIONS: ModeOption[] = [
     label: 'Story Mode',
     icon: 'sparkles',
     description:
-      "AI-written narratives and free-form question answering, grounded in live web search with cited sources. Powered by Gemini's free tier — subject to its rate limits.",
+      "AI-written narratives that research each spot fresh — historical and modern — grounded in live web search with cited sources. Powered by Gemini's free tier, subject to its rate limits.",
   },
   {
     id: 'wiki',
     label: 'Wiki Facts',
     icon: 'book',
     description:
-      "Real facts pulled directly from nearby Wikipedia articles. No AI, no rate limits, always free — but less conversational, and \"ask a question\" just returns matching article snippets instead of a written answer.",
+      "Browse nearby Wikipedia articles directly — always free, no rate limits. Asking a question here still uses Gemini's free tier to write a real answer from those articles, so it needs the same key as Story Mode to feel conversational.",
+  },
+];
+
+interface ReadOption {
+  id: ReadPreference;
+  label: string;
+  icon: 'document-text-outline' | 'volume-high-outline';
+  description: string;
+}
+
+const READ_OPTIONS: ReadOption[] = [
+  {
+    id: 'text',
+    label: 'Show text',
+    icon: 'document-text-outline',
+    description: 'Answers and articles appear as text — tap Read aloud whenever you want to hear them.',
+  },
+  {
+    id: 'voice',
+    label: 'Read aloud automatically',
+    icon: 'volume-high-outline',
+    description:
+      'Answers and articles play out loud as soon as they load. Voice questions always get a spoken answer either way.',
   },
 ];
 
 export default function SettingsScreen() {
   const { mode, setMode } = useContentMode();
+  const { preference, setPreference } = useReadPreference();
   const theme = useTheme();
 
   return (
@@ -50,6 +75,36 @@ export default function SettingsScreen() {
             const selected = option.id === mode;
             return (
               <Pressable key={option.id} onPress={() => setMode(option.id)}>
+                <ThemedView
+                  type={selected ? 'backgroundSelected' : 'backgroundElement'}
+                  style={[styles.card, { borderColor: selected ? theme.accent : theme.border }]}>
+                  <ThemedView style={styles.cardHeader}>
+                    <Ionicons name={option.icon} size={18} color={selected ? theme.accent : theme.text} />
+                    <ThemedText type="smallBold" style={styles.cardLabel}>
+                      {option.label}
+                    </ThemedText>
+                    <Ionicons
+                      name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={20}
+                      color={selected ? theme.accent : theme.textSecondary}
+                    />
+                  </ThemedView>
+                  <ThemedText type="small" themeColor="textSecondary" style={styles.description}>
+                    {option.description}
+                  </ThemedText>
+                </ThemedView>
+              </Pressable>
+            );
+          })}
+
+          <ThemedText type="smallBold" style={styles.sectionSpacing}>
+            Reading style
+          </ThemedText>
+
+          {READ_OPTIONS.map((option) => {
+            const selected = option.id === preference;
+            return (
+              <Pressable key={option.id} onPress={() => setPreference(option.id)}>
                 <ThemedView
                   type={selected ? 'backgroundSelected' : 'backgroundElement'}
                   style={[styles.card, { borderColor: selected ? theme.accent : theme.border }]}>
@@ -94,6 +149,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     lineHeight: 34,
+  },
+  sectionSpacing: {
+    marginTop: Spacing.two,
   },
   card: {
     borderRadius: Spacing.four,

@@ -1,7 +1,7 @@
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useCallback, useState } from 'react';
 
-export function useVoiceInput(onResult: (transcript: string) => void) {
+export function useVoiceInput(onResult: (transcript: string) => void, onEnd?: () => void) {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -10,7 +10,10 @@ export function useVoiceInput(onResult: (transcript: string) => void) {
     if (transcript) onResult(transcript);
   });
 
-  useSpeechRecognitionEvent('end', () => setListening(false));
+  useSpeechRecognitionEvent('end', () => {
+    setListening(false);
+    onEnd?.();
+  });
 
   useSpeechRecognitionEvent('error', (event) => {
     setError(event.message || event.error);

@@ -71,6 +71,27 @@ export interface ReverseGeocodeResponse {
   label: string | null;
 }
 
+export interface ArticleContentRequest {
+  title: string;
+}
+
+export interface ArticleContentResponse {
+  title: string;
+  extract: string;
+  url: string;
+}
+
+export interface ArticleAskRequest {
+  articleTitle: string;
+  articleText: string;
+  question: string;
+}
+
+export interface ArticleAskResponse {
+  question: string;
+  answer: string;
+}
+
 function requireApiUrl(): string {
   if (!API_URL) {
     throw new Error(
@@ -135,4 +156,12 @@ export function reverseGeocodeApi(req: ReverseGeocodeRequest): Promise<ReverseGe
     latitude: String(req.latitude),
     longitude: String(req.longitude),
   });
+}
+
+export function fetchArticleContent(req: ArticleContentRequest): Promise<ArticleContentResponse> {
+  return postJson<ArticleContentResponse>('/api/article-content', req);
+}
+
+export function askAboutArticle(req: ArticleAskRequest): Promise<ArticleAskResponse> {
+  return postJson<ArticleAskResponse>('/api/article-ask', req);
 }

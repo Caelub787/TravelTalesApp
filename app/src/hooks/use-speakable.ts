@@ -1,5 +1,5 @@
 import * as Speech from 'expo-speech';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { sanitizeForSpeech } from '@/utils/speech-text';
 
@@ -37,6 +37,9 @@ function pickBestVoice(): Promise<string | undefined> {
 
 export function useSpeakable() {
   const [speaking, setSpeaking] = useState(false);
+  // Guards against a stale onDone/onStopped callback (from a previous speak() call
+  // that got superseded) clearing `speaking` after a newer one has already started.
+  const speechToken = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -44,27 +47,44 @@ export function useSpeakable() {
     };
   }, []);
 
+  const speak = useCallback(async (text: string) => {
+    Speech.stop();
+    const token = ++speechToken.current;
+    setSpeaking(true);
+    const voice = await pickBestVoice();
+    if (speechToken.current !== token) return;
+    Speech.speak(sanitizeForSpeech(text), {
+      voice,
+      pitch: SPEECH_PITCH,
+      rate: SPEECH_RATE,
+      onDone: () => {
+        if (speechToken.current === token) setSpeaking(false);
+      },
+      onStopped: () => {
+        if (speechToken.current === token) setSpeaking(false);
+      },
+      onError: () => {
+        if (speechToken.current === token) setSpeaking(false);
+      },
+    });
+  }, []);
+
+  const stop = useCallback(() => {
+    speechToken.current++;
+    Speech.stop();
+    setSpeaking(false);
+  }, []);
+
   const toggle = useCallback(
-    async (text: string) => {
+    (text: string) => {
       if (speaking) {
-        Speech.stop();
-        setSpeaking(false);
+        stop();
         return;
       }
-
-      setSpeaking(true);
-      const voice = await pickBestVoice();
-      Speech.speak(sanitizeForSpeech(text), {
-        voice,
-        pitch: SPEECH_PITCH,
-        rate: SPEECH_RATE,
-        onDone: () => setSpeaking(false),
-        onStopped: () => setSpeaking(false),
-        onError: () => setSpeaking(false),
-      });
+      speak(text);
     },
-    [speaking]
+    [speaking, speak, stop]
   );
 
-  return { speaking, toggle };
+  return { speaking, speak, stop, toggle };
 }

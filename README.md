@@ -4,12 +4,20 @@ An app that watches your device's GPS in real time and surfaces real, verifiable
 culture, nature, architecture, folklore, and notable-people facts about wherever you
 currently are — picked by category, always cited so you can check the source yourself.
 
-Two content sources, switchable anytime in-app under **⚙️ Settings**:
+Two content sources, switchable anytime in-app under **⚙️ Settings** — both powered by the
+**free tier of Google's Gemini API** (no billing, no OpenAI/paid key required anywhere):
 
-- **✨ Story Mode** — AI-written narratives and free-form question answering, grounded in
-  live Google Search results, powered by the **free tier of Google's Gemini API**.
-- **📖 Wiki Facts** — real facts pulled directly from nearby Wikipedia articles. No AI, no
-  API key, no rate limits, always free.
+- **✨ Story Mode** — AI-written narratives that research each spot fresh (historical *and*
+  modern), grounded in live Google Search results.
+- **📖 Wiki Facts** — browse nearby Wikipedia articles directly (always free, no rate
+  limits, no key needed just to browse). Asking a question here still calls Gemini to
+  write a real conversational answer from those articles, so it needs the same free key as
+  Story Mode to feel like AI search instead of a raw keyword match.
+
+Tapping any article opens it *inside the app*, themed to match, with a "read aloud" button
+and a mini AI Q&A box scoped to just that article's text — never a new tab. Wikipedia
+content shown this way is attributed per its **CC BY-SA 4.0** license, with a link back to
+the original page and edit history (opened in-app too).
 
 ## How it works
 
@@ -18,8 +26,13 @@ Two content sources, switchable anytime in-app under **⚙️ Settings**:
       --- POST /api/ask             --->                       --->  (Story Mode: search +
       --- POST /api/wiki-facts      ---> (holds the Gemini key)      structured output)
       --- POST /api/wiki-search     --->                       --->  [Wikipedia API]
-                                                                       (Wiki Facts: free,
-                                                                        no key needed)
+      --- POST /api/article-content --->                       --->  (Wiki mode search
+      --- POST /api/article-ask     --->                       --->   synthesis + per-
+      --- GET  /api/reverse-geocode --->                       --->   article Q&A, both
+                                                                       via Gemini)
+                                                                --->  [Nominatim]
+                                                                       (reverse geocoding,
+                                                                        free, no key)
 ```
 
 - **`app/`** — an Expo (React Native + Expo Router) app. Runs as a native Android/iOS app
@@ -29,15 +42,19 @@ Two content sources, switchable anytime in-app under **⚙️ Settings**:
   Gemini key lives only here.
 
 **Also included**: an interactive map (web only — see below) for clicking anywhere to get
-stories about that spot instead of just your current location, a free-form "ask a
-question" box with voice input, a "read aloud" button on every response, and the ability
-to save/favorite stories and answers for later (on-device, under 🔖 Saved). No accounts.
+stories about that spot instead of just your current location, a free-form "ask anything"
+search box with voice input that can auto-submit and read its answer back out loud (a
+talk-and-listen loop, not just transcription), a Settings toggle for whether answers/
+articles read aloud automatically or wait for a tap, an on-device history of articles
+you've opened, and the ability to save/favorite stories and answers for later — all under
+**🔖 Saved**. No accounts.
 
 ## Prerequisites
 
 - Node.js 20+
-- A free [Gemini API key](https://aistudio.google.com/apikey) (only needed for Story Mode
-  — Wiki Facts mode works with no key at all)
+- A free [Gemini API key](https://aistudio.google.com/apikey) — powers Story Mode, Wiki
+  mode's AI search/Q&A, and per-article Q&A. Without it, Wiki mode's nearby-articles
+  browsing still works, just without the AI layer on top.
 - [Expo Go](https://expo.dev/go) on your phone for native testing, or just a browser for
   the web build
 - Your phone and computer on the same Wi-Fi network (for local native dev only)
@@ -149,17 +166,22 @@ grounding during that request. This significantly reduces hallucination compared
 recalling facts from memory, but it's not a formal fact-checking pipeline — the UI shows
 sources so you can verify anything that matters to you.
 
-**Wiki Facts mode**: facts are pulled directly from live Wikipedia article text, not
-AI-generated at all — the "hallucination" risk here is whatever's already in the relevant
-Wikipedia articles, same as reading Wikipedia directly.
+**Wiki Facts mode**: the nearby-articles list is pulled directly from live Wikipedia
+article text, not AI-generated at all — the "hallucination" risk here is whatever's
+already in the relevant Wikipedia articles, same as reading Wikipedia directly. Asking a
+question, or asking about a specific article, hands that same Wikipedia text to Gemini and
+asks it to answer *using only that text* — so it's synthesized, but still grounded in real
+excerpts rather than the model's own memory. If Gemini fails or isn't configured, Wiki
+mode's search falls back to the raw excerpts rather than breaking.
 
 If no verifiable facts are found near a location in either mode, the app says so rather
 than inventing content.
 
 ## Cost note
 
-Story Mode uses Gemini's free tier, which has rate limits — for two personal users this
-should never be an issue, but very heavy use could hit them. Wiki Facts mode has no
-meaningful usage limit for personal use. The app deliberately does not auto-fetch on every
-GPS update in either mode — it only prompts you to refresh after you've moved ~400m — to
-keep usage low regardless.
+Story Mode, Wiki mode's search/Q&A, and per-article Q&A all use Gemini's free tier, which
+has rate limits — for a couple of personal users this should never be an issue, but very
+heavy use could hit them. Browsing nearby Wikipedia articles has no meaningful usage limit
+for personal use and needs no key at all. The app deliberately does not auto-fetch on every
+GPS update in either mode — it only refreshes after you've moved ~400m — to keep usage low
+regardless.

@@ -71,7 +71,8 @@ function buildSystemPrompt(category: CategoryId): string {
   return `You are a rigorous local guide for a live travel app called TravelTales. A user is standing at a specific GPS location right now and wants ${CATEGORY_GUIDANCE[category]}.
 
 Rules:
-- Use Google Search grounding to find real, current sources before writing anything. Do not rely on your own memory for facts — verify everything through search.
+- Use Google Search grounding to find real, current sources before writing anything. Do not rely on your own memory for facts — verify everything through search, and don't limit yourself to Wikipedia — news sites, official/local government pages, tourism boards, and other reputable sources are all fair game.
+- Cover both historical and modern/contemporary angles where relevant — e.g. not just when a landmark was built, but what it's used for or known for today, recent changes, or current events tied to the spot — rather than defaulting only to old history.
 - Every fact you report must be traceable to a specific search result. Include the real title and URL of that result as the source.
 - Stay as hyper-local as possible to the given coordinates. Only broaden to the surrounding neighborhood, city, or region if nothing verifiable exists for the exact spot — and if you do, say so honestly via locationLabel and keep facts relevant to that broader area.
 - If you genuinely cannot find any verifiable facts even at a broader radius, set noVerifiedFactsFound to true and return an empty facts array rather than inventing content.
@@ -148,8 +149,8 @@ function buildAskSystemPrompt(): string {
   return `You are a rigorous local guide for a live travel app called TravelTales. A user is standing at a specific GPS location right now and is asking you a free-form question about where they are.
 
 Rules:
-- Use Google Search grounding to find real, current sources before answering. Do not rely on your own memory for facts — verify everything through search.
-- Answer the user's actual question directly and conversationally — don't pad with unrelated facts.
+- Use Google Search grounding to find real, current sources before answering. Do not rely on your own memory for facts — verify everything through search, and don't limit yourself to Wikipedia.
+- Answer the user's actual question directly and conversationally — don't pad with unrelated facts. This may be a spoken question read aloud back to the user, so keep it natural to hear, not just read.
 - Every claim in your answer must be traceable to a specific search result. Include the real title and URL of each source you relied on.
 - Stay as hyper-local as possible to the given coordinates. Only broaden scope if nothing verifiable exists for the exact spot, and say so honestly via locationLabel.
 - If you genuinely cannot find a verifiable answer, set noVerifiedAnswerFound to true, say so plainly in answer, and return an empty sources array rather than guessing.
@@ -180,4 +181,65 @@ export async function answerLocationQuestion(req: AskRequest): Promise<AskRespon
   }
 
   return { question, ...(call.args as unknown as Omit<AskResponse, "question">) };
+}
+
+// Grounded purely in text we already fetched (an article extract, or a handful of
+// Wikipedia search excerpts) — no search tool needed, so this stays fast and cheap on
+// the free tier even though it's used a lot (per-article Q&A, wiki-mode search synthesis).
+
+export async function answerArticleQuestion(req: {
+  articleTitle: string;
+  articleText: string;
+  question: string;
+}): Promise<{ answer: string }> {
+  const { articleTitle, articleText, question } = req;
+
+  const systemInstruction = `You are a helpful reading companion inside a travel app called TravelTales. The user is reading an article titled "${articleTitle}" and just asked a question about it.
+
+Rules:
+- Answer using ONLY the article text provided below — do not use outside knowledge or invent anything.
+- If the article doesn't contain the answer, say so honestly instead of guessing.
+- Keep the answer conversational and concise (1-4 sentences) — it may be read aloud back to the user.
+
+Article text:
+"""
+${articleText}
+"""`;
+
+  const response = await ai.models.generateContent({
+    model: MODEL,
+    contents: question,
+    config: { systemInstruction },
+  });
+
+  return { answer: response.text?.trim() || "I couldn't find an answer to that in this article." };
+}
+
+export async function synthesizeWikiSearchAnswer(req: {
+  question: string;
+  excerpts: { title: string; text: string }[];
+}): Promise<{ answer: string }> {
+  const { question, excerpts } = req;
+
+  const excerptText = excerpts.map((excerpt) => `### ${excerpt.title}\n${excerpt.text}`).join("\n\n");
+
+  const systemInstruction = `You are a helpful local-knowledge search assistant inside a travel app called TravelTales. Answer the user's question using ONLY the Wikipedia excerpts provided below — do not use outside knowledge.
+
+Rules:
+- Write a direct, conversational answer (2-5 sentences) that synthesizes the excerpts rather than just repeating them — it may be read aloud back to the user.
+- If the excerpts don't actually answer the question, say so honestly rather than forcing an answer.
+- Do not fabricate anything not supported by the excerpts.
+
+Wikipedia excerpts:
+"""
+${excerptText}
+"""`;
+
+  const response = await ai.models.generateContent({
+    model: MODEL,
+    contents: question,
+    config: { systemInstruction },
+  });
+
+  return { answer: response.text?.trim() || "I couldn't find a good answer to that nearby." };
 }

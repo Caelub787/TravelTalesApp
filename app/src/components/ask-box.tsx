@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,34 +8,57 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useVoiceInput } from '@/hooks/use-voice-input';
 
-interface Props {
-  disabled?: boolean;
-  onSubmit: (question: string) => void;
+interface SubmitOptions {
+  viaVoice?: boolean;
 }
 
-export function AskBox({ disabled, onSubmit }: Props) {
+interface Props {
+  disabled?: boolean;
+  placeholder?: string;
+  onSubmit: (question: string, options?: SubmitOptions) => void;
+}
+
+export function AskBox({ disabled, placeholder, onSubmit }: Props) {
   const [question, setQuestion] = useState('');
   const theme = useTheme();
-  const { listening, error, start, stop } = useVoiceInput((transcript) => setQuestion(transcript));
+  const latestTranscript = useRef('');
 
-  const handleSubmit = () => {
-    const trimmed = question.trim();
+  const submit = (text: string, options?: SubmitOptions) => {
+    const trimmed = text.trim();
     if (!trimmed) return;
-    onSubmit(trimmed);
+    onSubmit(trimmed, options);
   };
+
+  // Voice mode: once speech recognition ends, submit automatically and let the
+  // answer come back spoken — a talk-and-listen loop instead of transcribe-then-tap.
+  const { listening, error, start, stop } = useVoiceInput(
+    (transcript) => {
+      latestTranscript.current = transcript;
+      setQuestion(transcript);
+    },
+    () => {
+      if (latestTranscript.current.trim()) {
+        submit(latestTranscript.current, { viaVoice: true });
+        setQuestion('');
+        latestTranscript.current = '';
+      }
+    }
+  );
+
+  const handleSubmit = () => submit(question);
 
   const canSend = !disabled && question.trim().length > 0;
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="smallBold">Ask about this spot</ThemedText>
+      <ThemedText type="smallBold">{placeholder ?? 'Ask about this spot'}</ThemedText>
       <ThemedView
         style={[styles.pill, { backgroundColor: theme.backgroundElement, borderColor: theme.border, shadowColor: theme.text }]}>
-        <Ionicons name="search-outline" size={18} color={theme.textSecondary} style={styles.leadingIcon} />
+        <Ionicons name="sparkles-outline" size={18} color={theme.textSecondary} style={styles.leadingIcon} />
         <TextInput
           value={question}
           onChangeText={setQuestion}
-          placeholder="e.g. Why is this street named that?"
+          placeholder="Ask anything — search, don't just look up wiki articles"
           placeholderTextColor={theme.textSecondary}
           style={[styles.input, { color: theme.text }]}
           editable={!disabled}
@@ -61,7 +84,7 @@ export function AskBox({ disabled, onSubmit }: Props) {
       </ThemedView>
       {listening && (
         <ThemedText type="small" themeColor="textSecondary">
-          Listening…
+          Listening… I'll ask and read the answer back when you stop.
         </ThemedText>
       )}
       {error && (

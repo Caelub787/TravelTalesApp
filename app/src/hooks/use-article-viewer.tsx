@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 
+import { useArticleHistory } from '@/hooks/use-article-history';
 import { openExternalUrl } from '@/utils/open-external';
 
 interface ArticleViewerArticle {
@@ -22,14 +23,19 @@ const ArticleViewerContext = createContext<ArticleViewerContextValue | null>(nul
 // there's no separate in-app view to build there.
 export function ArticleViewerProvider({ children }: { children: ReactNode }) {
   const [article, setArticle] = useState<ArticleViewerArticle | null>(null);
+  const { record } = useArticleHistory();
 
-  const open = useCallback((url: string, title?: string) => {
-    if (Platform.OS === 'web') {
-      setArticle({ url, title });
-    } else {
-      openExternalUrl(url);
-    }
-  }, []);
+  const open = useCallback(
+    (url: string, title?: string) => {
+      record({ url, title: title ?? url });
+      if (Platform.OS === 'web') {
+        setArticle({ url, title });
+      } else {
+        openExternalUrl(url);
+      }
+    },
+    [record]
+  );
 
   const close = useCallback(() => setArticle(null), []);
 

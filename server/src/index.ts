@@ -5,9 +5,12 @@ import { locationFactsRouter } from "./routes/locationFacts.js";
 import { askRouter } from "./routes/ask.js";
 import { wikiRouter } from "./routes/wiki.js";
 import { geocodeRouter } from "./routes/geocode.js";
+import { articleRouter } from "./routes/article.js";
 
 if (!process.env.GEMINI_API_KEY) {
-  console.warn("Warning: GEMINI_API_KEY is not set. Story Mode (/api/location-facts, /api/ask) will fail until it is.");
+  console.warn(
+    "Warning: GEMINI_API_KEY is not set. Story Mode, per-article AI Q&A, and Wiki mode's AI-synthesized search answers will fail until it is."
+  );
 }
 
 const app = express();
@@ -22,6 +25,7 @@ app.use("/api", locationFactsRouter);
 app.use("/api", askRouter);
 app.use("/api", wikiRouter);
 app.use("/api", geocodeRouter);
+app.use("/api", articleRouter);
 
 const port = Number(process.env.PORT) || 3001;
 app.listen(port, () => {

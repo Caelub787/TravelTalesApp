@@ -1,4 +1,6 @@
+import { synthesizeWikiSearchAnswer } from "./geminiClient.js";
 import type {
+  ArticleContentResponse,
   AskRequest,
   AskResponse,
   CategoryId,
@@ -280,23 +282,62 @@ export async function searchWikiAnswer(req: AskRequest): Promise<AskResponse> {
   const byId = new Map(extracts.map((page) => [page.pageid, page]));
 
   const sources: FactSource[] = [];
-  const snippets: string[] = [];
+  const excerpts: { title: string; text: string }[] = [];
   for (const result of results) {
     const page = byId.get(result.pageid);
     if (!page?.fullurl) continue;
     sources.push({ title: page.title, url: page.fullurl });
     const plainSnippet = result.snippet.replace(/<[^>]+>/g, "");
-    snippets.push(`${page.title}: ${plainSnippet}…`);
+    excerpts.push({ title: page.title, text: page.extract?.trim() || plainSnippet });
+  }
+
+  if (excerpts.length === 0) {
+    return {
+      question,
+      answer: "Nothing on Wikipedia near here matched that question.",
+      locationLabel: placeLabel ?? `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+      sources: [],
+      noVerifiedAnswerFound: true,
+    };
+  }
+
+  // Prefer a synthesized, conversational answer (still grounded only in these excerpts)
+  // over a raw snippet dump — but Wiki mode is meant to keep working even without a
+  // Gemini key configured, so fall back to the snippets themselves if synthesis fails.
+  let answer: string;
+  try {
+    answer = (await synthesizeWikiSearchAnswer({ question, excerpts })).answer;
+  } catch (err) {
+    console.error("Gemini synthesis failed, falling back to raw Wikipedia snippets:", err);
+    answer = `Here's what nearby Wikipedia articles say:\n\n${excerpts
+      .map((e) => `${e.title}: ${e.text}`)
+      .join("\n\n")}`;
   }
 
   return {
     question,
-    answer:
-      snippets.length > 0
-        ? `Here's what nearby Wikipedia articles say:\n\n${snippets.join("\n\n")}`
-        : "Nothing on Wikipedia near here matched that question.",
+    answer,
     locationLabel: placeLabel ?? `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
     sources,
-    noVerifiedAnswerFound: sources.length === 0,
+    noVerifiedAnswerFound: false,
   };
+}
+
+export async function fetchArticleContent(title: string): Promise<ArticleContentResponse> {
+  const data = await wikiFetch<{ query?: { pages?: Record<string, ExtractResult> } }>({
+    action: "query",
+    prop: "extracts|info",
+    exintro: "1",
+    explaintext: "1",
+    inprop: "url",
+    redirects: "1",
+    titles: title,
+  });
+
+  const page = Object.values(data.query?.pages ?? {})[0];
+  if (!page?.extract || !page.fullurl) {
+    throw new Error(`No Wikipedia content found for "${title}"`);
+  }
+
+  return { title: page.title, extract: page.extract.trim(), url: page.fullurl };
 }
