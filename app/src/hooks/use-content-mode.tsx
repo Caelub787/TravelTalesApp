@@ -13,7 +13,7 @@ interface ContentModeContextValue {
 const ContentModeContext = createContext<ContentModeContextValue | null>(null);
 
 export function ContentModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<ContentMode>('story');
+  const [mode, setModeState] = useState<ContentMode>('wiki');
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
