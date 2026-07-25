@@ -68,6 +68,7 @@ export default function HomeScreen() {
             <>
               <LocationHeader
                 placeLabel={placeLabel}
+                coords={coords}
                 hasMoved={hasMovedSinceLastFetch(coords)}
                 onRefresh={handleRefresh}
               />

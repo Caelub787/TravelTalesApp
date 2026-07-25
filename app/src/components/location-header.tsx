@@ -3,20 +3,24 @@ import { Pressable, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import type { Coords } from '@/hooks/use-live-location';
 
 interface Props {
   placeLabel: string | null;
+  coords: Coords | null;
   hasMoved: boolean;
   onRefresh: () => void;
 }
 
-export function LocationHeader({ placeLabel, hasMoved, onRefresh }: Props) {
+export function LocationHeader({ placeLabel, coords, hasMoved, onRefresh }: Props) {
+  const fallback = coords ? `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}` : 'Locating…';
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="small" themeColor="textSecondary">
         You are near
       </ThemedText>
-      <ThemedText type="subtitle">{placeLabel ?? 'Locating…'}</ThemedText>
+      <ThemedText type="subtitle">{placeLabel ?? fallback}</ThemedText>
 
       {hasMoved && (
         <Pressable onPress={onRefresh} style={styles.banner}>
