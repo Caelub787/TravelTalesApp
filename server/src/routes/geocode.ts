@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { reverseGeocode } from "../services/geocode.js";
 import type { ReverseGeocodeRequest } from "../types.js";
+import { errorMessage } from "../utils/errorMessage.js";
 
 export const geocodeRouter = Router();
 
@@ -20,6 +21,6 @@ geocodeRouter.get("/reverse-geocode", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Failed to reverse geocode:", err);
-    res.status(502).json({ error: "Failed to reverse geocode" });
+    res.status(502).json({ error: errorMessage(err, "Failed to reverse geocode") });
   }
 });

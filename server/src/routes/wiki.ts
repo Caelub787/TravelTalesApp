@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { fetchNearbyArticles, fetchWikiLocationFacts, searchWikiAnswer } from "../services/wikipedia.js";
 import type { AskRequest, CategoryId, LocationFactsRequest, NearbyArticlesRequest } from "../types.js";
+import { errorMessage } from "../utils/errorMessage.js";
 
 const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "architecture", "legends", "people", "general"];
 
@@ -36,7 +37,7 @@ wikiRouter.post("/wiki-facts", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Failed to fetch Wikipedia facts:", err);
-    res.status(502).json({ error: "Failed to fetch facts from Wikipedia" });
+    res.status(502).json({ error: errorMessage(err, "Failed to fetch facts from Wikipedia") });
   }
 });
 
@@ -65,7 +66,7 @@ wikiRouter.post("/wiki-search", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Failed to search Wikipedia:", err);
-    res.status(502).json({ error: "Failed to search Wikipedia" });
+    res.status(502).json({ error: errorMessage(err, "Failed to search Wikipedia") });
   }
 });
 
@@ -88,6 +89,6 @@ wikiRouter.post("/wiki-nearby", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Failed to fetch nearby Wikipedia articles:", err);
-    res.status(502).json({ error: "Failed to fetch nearby articles from Wikipedia" });
+    res.status(502).json({ error: errorMessage(err, "Failed to fetch nearby articles from Wikipedia") });
   }
 });

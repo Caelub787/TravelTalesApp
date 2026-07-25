@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { answerLocationQuestion } from "../services/geminiClient.js";
 import type { AskRequest } from "../types.js";
+import { errorMessage } from "../utils/errorMessage.js";
 
 export const askRouter = Router();
 
@@ -34,6 +35,6 @@ askRouter.post("/ask", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Failed to answer location question:", err);
-    res.status(502).json({ error: "Failed to get an answer from Gemini" });
+    res.status(502).json({ error: errorMessage(err, "Failed to get an answer from Gemini") });
   }
 });
