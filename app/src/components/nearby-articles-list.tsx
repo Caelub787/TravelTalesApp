@@ -38,7 +38,7 @@ export function NearbyArticlesList({ result }: Props) {
         {result.articles.length} nearby article{result.articles.length === 1 ? '' : 's'}
       </ThemedText>
       {result.articles.map((article, index) => (
-        <ExternalLink key={index} href={article.url as `${string}:${string}`}>
+        <ExternalLink key={index} href={article.url as `${string}:${string}`} title={article.title}>
           <ThemedView type="backgroundElement" style={[styles.row, { borderColor: theme.border, shadowColor: theme.text }]}>
             <ThemedView style={[styles.icon, { backgroundColor: theme.backgroundSelected }]}>
               <Ionicons name="document-text-outline" size={16} color={theme.accent} />

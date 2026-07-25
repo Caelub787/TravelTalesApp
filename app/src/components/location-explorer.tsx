@@ -12,6 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ALL_CATEGORY, CATEGORIES, type CategoryId } from '@/constants/categories';
 import { Spacing } from '@/constants/theme';
+import { useArticleViewer } from '@/hooks/use-article-viewer';
 import { useAskQuestion } from '@/hooks/use-ask-question';
 import { useContentMode } from '@/hooks/use-content-mode';
 import type { Coords } from '@/hooks/use-live-location';
@@ -21,7 +22,6 @@ import { useSearchRadius } from '@/hooks/use-search-radius';
 import type { LocationFactsResponse, NearbyArticle } from '@/services/api';
 import { matchesCategory } from '@/utils/category-match';
 import { distanceMeters } from '@/utils/distance';
-import { openExternalUrl } from '@/utils/open-external';
 
 const MOVED_THRESHOLD_METERS = 400;
 
@@ -46,6 +46,7 @@ export function LocationExplorer({
 }: Props) {
   const { mode } = useContentMode();
   const { radiusMiles } = useSearchRadius();
+  const { open: openArticle } = useArticleViewer();
   const { result: askResult, status: askStatus, error: askError, ask } = useAskQuestion();
   const { result: nearbyResult, status: nearbyStatus, error: nearbyError, fetchNearby } = useNearbyArticles();
   const [filter, setFilter] = useState<CategoryId | 'all'>('all');
@@ -85,11 +86,11 @@ export function LocationExplorer({
       const pool = filteredArticles.length > 0 ? filteredArticles : nearbyResult?.articles ?? [];
       if (pool.length === 0) return;
       const pick: NearbyArticle = pool[Math.floor(Math.random() * pool.length)];
-      openExternalUrl(pick.url);
+      openArticle(pick.url, pick.title);
     } else {
       onSelectCategory('general');
     }
-  }, [mode, filteredArticles, nearbyResult, onSelectCategory]);
+  }, [mode, filteredArticles, nearbyResult, onSelectCategory, openArticle]);
 
   return (
     <ThemedView style={styles.container}>

@@ -1,24 +1,22 @@
 import { Href, Link } from 'expo-router';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { type ComponentProps } from 'react';
 
-type Props = Omit<ComponentProps<typeof Link>, 'href'> & { href: Href & string };
+import { useArticleViewer } from '@/hooks/use-article-viewer';
 
-export function ExternalLink({ href, ...rest }: Props) {
+type Props = Omit<ComponentProps<typeof Link>, 'href'> & { href: Href & string; title?: string };
+
+// Always opens through useArticleViewer — an in-app modal on web, expo-web-browser's
+// in-app sheet on native — so tapping a source never takes the user out of the app.
+export function ExternalLink({ href, title, ...rest }: Props) {
+  const { open } = useArticleViewer();
+
   return (
     <Link
-      target="_blank"
       {...rest}
       href={href}
-      onPress={async (event) => {
-        if (process.env.EXPO_OS !== 'web') {
-          // Prevent the default behavior of linking to the default browser on native.
-          event.preventDefault();
-          // Open the link in an in-app browser.
-          await openBrowserAsync(href, {
-            presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
-          });
-        }
+      onPress={(event) => {
+        event.preventDefault();
+        open(href, title);
       }}
     />
   );

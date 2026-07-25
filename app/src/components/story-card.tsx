@@ -57,7 +57,7 @@ export function StoryCard({ result }: Props) {
             </ThemedView>
             <ThemedView style={styles.factTextColumn}>
               <ThemedText>{fact.text}</ThemedText>
-              <ExternalLink href={fact.source.url as `${string}:${string}`}>
+              <ExternalLink href={fact.source.url as `${string}:${string}`} title={fact.source.title}>
                 <ThemedView style={styles.sourceRow}>
                   <Ionicons name="link-outline" size={12} color={theme.textSecondary} />
                   <ThemedText type="link" themeColor="textSecondary">

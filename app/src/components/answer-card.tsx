@@ -39,7 +39,7 @@ export function AnswerCard({ result }: Props) {
       {result.sources.length > 0 && (
         <ThemedView style={[styles.sourceList, { borderTopColor: theme.border }]}>
           {result.sources.map((source, index) => (
-            <ExternalLink key={index} href={source.url as `${string}:${string}`}>
+            <ExternalLink key={index} href={source.url as `${string}:${string}`} title={source.title}>
               <ThemedView style={styles.sourceRow}>
                 <Ionicons name="link-outline" size={12} color={theme.textSecondary} />
                 <ThemedText type="link" themeColor="textSecondary">
