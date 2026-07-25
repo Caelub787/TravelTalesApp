@@ -1,9 +1,25 @@
-import type { AskRequest, AskResponse, CategoryId, FactSource, LocationFactsRequest, LocationFactsResponse } from "../types.js";
+import type {
+  AskRequest,
+  AskResponse,
+  CategoryId,
+  FactSource,
+  LocationFactsRequest,
+  LocationFactsResponse,
+  NearbyArticle,
+  NearbyArticlesRequest,
+  NearbyArticlesResponse,
+} from "../types.js";
 
 const API_BASE = "https://en.wikipedia.org/w/api.php";
 const USER_AGENT = "TravelTales-App/1.0 (personal project; contact via GitHub)";
-const SEARCH_RADIUS_METERS = 8000;
+const DEFAULT_RADIUS_MILES = 10;
+const MILES_TO_METERS = 1609.34;
+const EARTH_RADIUS_METERS = 6371000;
+// The MediaWiki geosearch API caps gsradius at 10000 meters (~6.2 miles) per request, so
+// wider radii are covered by sampling multiple search centers and merging the results.
+const MAX_GEOSEARCH_RADIUS_METERS = 10000;
 const MAX_PAGES = 6;
+const MAX_NEARBY_ARTICLES = 40;
 
 const CATEGORY_KEYWORDS: Record<Exclude<CategoryId, "general">, string[]> = {
   history: ["history", "historic", "founded", "war", "battle", "century", "established", "colonial", "ancient"],
@@ -17,7 +33,12 @@ const CATEGORY_KEYWORDS: Record<Exclude<CategoryId, "general">, string[]> = {
 interface GeoSearchResult {
   pageid: number;
   title: string;
-  dist: number;
+  lat: number;
+  lon: number;
+}
+
+interface GeoSearchResultWithDistance extends GeoSearchResult {
+  distanceMeters: number;
 }
 
 interface ExtractResult {
@@ -41,15 +62,93 @@ async function wikiFetch<T>(params: Record<string, string>): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-async function geosearch(latitude: number, longitude: number): Promise<GeoSearchResult[]> {
-  const data = await wikiFetch<{ query?: { geosearch?: GeoSearchResult[] } }>({
-    action: "query",
-    list: "geosearch",
-    gscoord: `${latitude}|${longitude}`,
-    gsradius: String(SEARCH_RADIUS_METERS),
-    gslimit: String(MAX_PAGES * 3),
-  });
-  return data.query?.geosearch ?? [];
+function toRadians(degrees: number): number {
+  return (degrees * Math.PI) / 180;
+}
+
+function distanceMeters(aLat: number, aLon: number, bLat: number, bLon: number): number {
+  const dLat = toRadians(bLat - aLat);
+  const dLon = toRadians(bLon - aLon);
+  const lat1 = toRadians(aLat);
+  const lat2 = toRadians(bLat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * EARTH_RADIUS_METERS * Math.asin(Math.sqrt(h));
+}
+
+// Destination point given a start coordinate, bearing (degrees), and distance (meters).
+function destinationPoint(lat: number, lon: number, bearingDegrees: number, distance: number): [number, number] {
+  const angularDistance = distance / EARTH_RADIUS_METERS;
+  const bearing = toRadians(bearingDegrees);
+  const lat1 = toRadians(lat);
+  const lon1 = toRadians(lon);
+
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(angularDistance) + Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing)
+  );
+  const lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
+      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2)
+    );
+
+  return [(lat2 * 180) / Math.PI, (lon2 * 180) / Math.PI];
+}
+
+/**
+ * Search centers to query. For radii within the API's single-call limit this is just the
+ * original point; for wider radii it's a ring of points around the center so the combined
+ * coverage (each filtered back down to the true requested radius) reaches further than any
+ * single geosearch call is allowed to.
+ */
+function buildSearchCenters(latitude: number, longitude: number, radiusMeters: number): Array<[number, number]> {
+  if (radiusMeters <= MAX_GEOSEARCH_RADIUS_METERS) {
+    return [[latitude, longitude]];
+  }
+
+  const ringDistance = radiusMeters - MAX_GEOSEARCH_RADIUS_METERS * 0.5;
+  const centers: Array<[number, number]> = [[latitude, longitude]];
+  const ringPoints = 6;
+  for (let i = 0; i < ringPoints; i++) {
+    centers.push(destinationPoint(latitude, longitude, (360 / ringPoints) * i, ringDistance));
+  }
+  return centers;
+}
+
+function milesToMeters(radiusMiles: number | undefined): number {
+  const clamped = Math.min(Math.max(radiusMiles ?? DEFAULT_RADIUS_MILES, 1), 200);
+  return clamped * MILES_TO_METERS;
+}
+
+async function geosearchArea(latitude: number, longitude: number, radiusMiles: number | undefined): Promise<GeoSearchResultWithDistance[]> {
+  const radiusMeters = milesToMeters(radiusMiles);
+  const perCallRadius = Math.min(radiusMeters, MAX_GEOSEARCH_RADIUS_METERS);
+  const centers = buildSearchCenters(latitude, longitude, radiusMeters);
+
+  const resultBatches = await Promise.all(
+    centers.map(([lat, lon]) =>
+      wikiFetch<{ query?: { geosearch?: GeoSearchResult[] } }>({
+        action: "query",
+        list: "geosearch",
+        gscoord: `${lat}|${lon}`,
+        gsradius: String(Math.max(perCallRadius, 10)),
+        gslimit: "50",
+      }).then((data) => data.query?.geosearch ?? [])
+    )
+  );
+
+  const byId = new Map<number, GeoSearchResultWithDistance>();
+  for (const batch of resultBatches) {
+    for (const page of batch) {
+      if (byId.has(page.pageid)) continue;
+      const distance = distanceMeters(latitude, longitude, page.lat, page.lon);
+      if (distance <= radiusMeters) {
+        byId.set(page.pageid, { ...page, distanceMeters: distance });
+      }
+    }
+  }
+
+  return Array.from(byId.values()).sort((a, b) => a.distanceMeters - b.distanceMeters);
 }
 
 async function fetchExtracts(pageIds: number[]): Promise<ExtractResult[]> {
@@ -83,9 +182,9 @@ function toFact(page: ExtractResult): { text: string; source: FactSource } | nul
 }
 
 export async function fetchWikiLocationFacts(req: LocationFactsRequest): Promise<LocationFactsResponse> {
-  const { latitude, longitude, placeLabel, category } = req;
+  const { latitude, longitude, placeLabel, category, radiusMiles } = req;
 
-  const nearby = await geosearch(latitude, longitude);
+  const nearby = await geosearchArea(latitude, longitude, radiusMiles);
   if (nearby.length === 0) {
     return {
       title: "Nothing nearby on Wikipedia",
@@ -130,13 +229,39 @@ export async function fetchWikiLocationFacts(req: LocationFactsRequest): Promise
   };
 }
 
-export async function searchWikiAnswer(req: AskRequest): Promise<AskResponse> {
-  const { latitude, longitude, placeLabel, question } = req;
+export async function fetchNearbyArticles(req: NearbyArticlesRequest): Promise<NearbyArticlesResponse> {
+  const { latitude, longitude, radiusMiles } = req;
 
+  const nearby = (await geosearchArea(latitude, longitude, radiusMiles)).slice(0, MAX_NEARBY_ARTICLES);
+  const extracts = await fetchExtracts(nearby.map((page) => page.pageid));
+  const byId = new Map(extracts.map((page) => [page.pageid, page]));
+
+  const articles: NearbyArticle[] = [];
+  for (const page of nearby) {
+    const extract = byId.get(page.pageid);
+    if (!extract?.fullurl) continue;
+    articles.push({
+      title: page.title,
+      url: extract.fullurl,
+      snippet: extract.extract?.trim() ?? "",
+      distanceMeters: Math.round(page.distanceMeters),
+    });
+  }
+
+  return {
+    locationLabel: articles[0]?.title ?? `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+    articles,
+  };
+}
+
+export async function searchWikiAnswer(req: AskRequest): Promise<AskResponse> {
+  const { latitude, longitude, placeLabel, question, radiusMiles } = req;
+
+  const radiusKm = Math.round(milesToMeters(radiusMiles) / 1000);
   const data = await wikiFetch<{ query?: { search?: { title: string; snippet: string; pageid: number }[] } }>({
     action: "query",
     list: "search",
-    srsearch: `${question} nearcoord:${SEARCH_RADIUS_METERS / 1000}km,${latitude},${longitude}`,
+    srsearch: `${question} nearcoord:${radiusKm}km,${latitude},${longitude}`,
     srlimit: "5",
   });
 

@@ -32,7 +32,7 @@ export function AskBox({ disabled, onSubmit }: Props) {
           onChangeText={setQuestion}
           placeholder="e.g. Why is this street named that?"
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundElement }]}
+          style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
           editable={!disabled}
           onSubmitEditing={handleSubmit}
           returnKeyType="send"
@@ -40,14 +40,24 @@ export function AskBox({ disabled, onSubmit }: Props) {
         <Pressable
           onPress={listening ? stop : start}
           disabled={disabled}
-          style={[styles.iconButton, { backgroundColor: listening ? theme.backgroundSelected : theme.backgroundElement }]}>
+          style={[
+            styles.iconButton,
+            { backgroundColor: listening ? theme.accent : theme.backgroundElement, borderColor: theme.border },
+          ]}>
           <ThemedText>{listening ? '⏺' : '🎤'}</ThemedText>
         </Pressable>
         <Pressable
           onPress={handleSubmit}
           disabled={disabled || question.trim().length === 0}
-          style={[styles.iconButton, { backgroundColor: theme.backgroundElement }]}>
-          <ThemedText>➤</ThemedText>
+          style={[
+            styles.iconButton,
+            {
+              backgroundColor: theme.accent,
+              borderColor: theme.border,
+              opacity: disabled || question.trim().length === 0 ? 0.4 : 1,
+            },
+          ]}>
+          <ThemedText themeColor="accentContrast">➤</ThemedText>
         </Pressable>
       </ThemedView>
       {listening && (
@@ -76,12 +86,14 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderRadius: Spacing.three,
+    borderWidth: 1,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     fontSize: 16,
   },
   iconButton: {
     borderRadius: Spacing.three,
+    borderWidth: 1,
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.two,
     alignItems: 'center',

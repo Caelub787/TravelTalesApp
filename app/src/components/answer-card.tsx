@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { answerSaveId } from '@/hooks/use-saved-items';
+import { useTheme } from '@/hooks/use-theme';
 import type { AskResponse } from '@/services/api';
 
 interface Props {
@@ -14,8 +15,10 @@ interface Props {
 }
 
 export function AnswerCard({ result }: Props) {
+  const theme = useTheme();
+
   return (
-    <ThemedView type="backgroundElement" style={styles.card}>
+    <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
       <ThemedText type="small" themeColor="textSecondary">
         You asked
       </ThemedText>
@@ -48,6 +51,7 @@ export function AnswerCard({ result }: Props) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: Spacing.four,
+    borderWidth: 1,
     padding: Spacing.four,
     gap: Spacing.two,
   },

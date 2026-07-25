@@ -4,6 +4,7 @@ import type { CategoryId } from '@/constants/categories';
 import { fetchLocationFacts, fetchWikiFacts, type LocationFactsResponse } from '@/services/api';
 import { useContentMode } from '@/hooks/use-content-mode';
 import type { Coords } from '@/hooks/use-live-location';
+import { useSearchRadius } from '@/hooks/use-search-radius';
 import { distanceMeters } from '@/utils/distance';
 
 const MOVED_THRESHOLD_METERS = 400;
@@ -12,6 +13,7 @@ export type LocationFactsStatus = 'idle' | 'loading' | 'error' | 'success';
 
 export function useLocationFacts() {
   const { mode } = useContentMode();
+  const { radiusMiles } = useSearchRadius();
   const [category, setCategory] = useState<CategoryId | null>(null);
   const [result, setResult] = useState<LocationFactsResponse | null>(null);
   const [status, setStatus] = useState<LocationFactsStatus>('idle');
@@ -30,6 +32,7 @@ export function useLocationFacts() {
           longitude: coords.longitude,
           placeLabel: placeLabel ?? undefined,
           category: nextCategory,
+          radiusMiles,
         };
         const response = mode === 'wiki' ? await fetchWikiFacts(request) : await fetchLocationFacts(request);
         setResult(response);
@@ -40,7 +43,7 @@ export function useLocationFacts() {
         setStatus('error');
       }
     },
-    [mode]
+    [mode, radiusMiles]
   );
 
   const hasMovedSinceLastFetch = useCallback(

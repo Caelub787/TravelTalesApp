@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { ChipButton } from '@/components/chip-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -23,9 +24,9 @@ export function LocationHeader({ placeLabel, coords, hasMoved, onRefresh }: Prop
       <ThemedText type="subtitle">{placeLabel ?? fallback}</ThemedText>
 
       {hasMoved && (
-        <Pressable onPress={onRefresh} style={styles.banner}>
-          <ThemedText type="linkPrimary">You've moved — tap to refresh stories</ThemedText>
-        </Pressable>
+        <ThemedView style={styles.banner}>
+          <ChipButton label="📍 You've moved — tap to refresh" active onPress={onRefresh} />
+        </ThemedView>
       )}
     </ThemedView>
   );

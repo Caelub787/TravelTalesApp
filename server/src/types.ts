@@ -12,6 +12,7 @@ export interface LocationFactsRequest {
   longitude: number;
   placeLabel?: string;
   category: CategoryId;
+  radiusMiles?: number;
 }
 
 export interface FactSource {
@@ -37,6 +38,25 @@ export interface AskRequest {
   longitude: number;
   placeLabel?: string;
   question: string;
+  radiusMiles?: number;
+}
+
+export interface NearbyArticlesRequest {
+  latitude: number;
+  longitude: number;
+  radiusMiles?: number;
+}
+
+export interface NearbyArticle {
+  title: string;
+  url: string;
+  snippet: string;
+  distanceMeters: number;
+}
+
+export interface NearbyArticlesResponse {
+  locationLabel: string;
+  articles: NearbyArticle[];
 }
 
 export interface AskResponse {

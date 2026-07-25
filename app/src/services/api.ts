@@ -25,6 +25,7 @@ export interface LocationFactsRequest {
   longitude: number;
   placeLabel?: string;
   category: CategoryId;
+  radiusMiles?: number;
 }
 
 export interface AskRequest {
@@ -32,6 +33,7 @@ export interface AskRequest {
   longitude: number;
   placeLabel?: string;
   question: string;
+  radiusMiles?: number;
 }
 
 export interface AskResponse {
@@ -40,6 +42,24 @@ export interface AskResponse {
   locationLabel: string;
   sources: FactSource[];
   noVerifiedAnswerFound: boolean;
+}
+
+export interface NearbyArticlesRequest {
+  latitude: number;
+  longitude: number;
+  radiusMiles?: number;
+}
+
+export interface NearbyArticle {
+  title: string;
+  url: string;
+  snippet: string;
+  distanceMeters: number;
+}
+
+export interface NearbyArticlesResponse {
+  locationLabel: string;
+  articles: NearbyArticle[];
 }
 
 async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
@@ -77,4 +97,8 @@ export function fetchWikiFacts(req: LocationFactsRequest): Promise<LocationFacts
 
 export function searchWiki(req: AskRequest): Promise<AskResponse> {
   return postJson<AskResponse>('/api/wiki-search', req);
+}
+
+export function fetchNearbyArticles(req: NearbyArticlesRequest): Promise<NearbyArticlesResponse> {
+  return postJson<NearbyArticlesResponse>('/api/wiki-nearby', req);
 }

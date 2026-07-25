@@ -1,6 +1,4 @@
-import { Pressable, StyleSheet } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
+import { ChipButton } from '@/components/chip-button';
 import { useSavedItems, type SavedItem } from '@/hooks/use-saved-items';
 
 interface Props {
@@ -12,15 +10,5 @@ export function SaveButton({ id, item }: Props) {
   const { isSaved, toggleSave } = useSavedItems();
   const saved = isSaved(id);
 
-  return (
-    <Pressable onPress={() => toggleSave(item)} style={styles.button}>
-      <ThemedText type="linkPrimary">{saved ? '🔖 Saved' : '🔖 Save'}</ThemedText>
-    </Pressable>
-  );
+  return <ChipButton label={saved ? '🔖 Saved' : '🔖 Save'} active={saved} onPress={() => toggleSave(item)} />;
 }
-
-const styles = StyleSheet.create({
-  button: {
-    alignSelf: 'flex-start',
-  },
-});

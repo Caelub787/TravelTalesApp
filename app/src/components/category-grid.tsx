@@ -1,22 +1,24 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { CATEGORIES, type CategoryId } from '@/constants/categories';
+import { ALL_NEARBY_CATEGORY, CATEGORIES, type CategorySelection } from '@/constants/categories';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface Props {
-  selected: CategoryId | null;
+  selected: CategorySelection | null;
   disabled?: boolean;
-  onSelect: (category: CategoryId) => void;
+  includeAllNearby?: boolean;
+  onSelect: (category: CategorySelection) => void;
 }
 
-export function CategoryGrid({ selected, disabled, onSelect }: Props) {
+export function CategoryGrid({ selected, disabled, includeAllNearby, onSelect }: Props) {
   const theme = useTheme();
+  const categories = includeAllNearby ? [...CATEGORIES, ALL_NEARBY_CATEGORY] : CATEGORIES;
 
   return (
     <View style={styles.grid}>
-      {CATEGORIES.map((category) => {
+      {categories.map((category) => {
         const isSelected = category.id === selected;
         return (
           <Pressable
@@ -27,6 +29,7 @@ export function CategoryGrid({ selected, disabled, onSelect }: Props) {
               styles.chip,
               {
                 backgroundColor: isSelected ? theme.backgroundSelected : theme.backgroundElement,
+                borderColor: isSelected ? theme.accent : theme.border,
                 opacity: disabled ? 0.5 : 1,
               },
             ]}>
@@ -51,6 +54,7 @@ const styles = StyleSheet.create({
     flexBasis: '47%',
     flexGrow: 1,
     borderRadius: Spacing.three,
+    borderWidth: 1.5,
     paddingVertical: Spacing.three,
     paddingHorizontal: Spacing.two,
     alignItems: 'center',

@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useContentMode, type ContentMode } from '@/hooks/use-content-mode';
+import { useTheme } from '@/hooks/use-theme';
 
 interface ModeOption {
   id: ContentMode;
@@ -31,6 +32,7 @@ const OPTIONS: ModeOption[] = [
 
 export default function SettingsScreen() {
   const { mode, setMode } = useContentMode();
+  const theme = useTheme();
 
   return (
     <ThemedView style={styles.container}>
@@ -49,7 +51,9 @@ export default function SettingsScreen() {
             const selected = option.id === mode;
             return (
               <Pressable key={option.id} onPress={() => setMode(option.id)}>
-                <ThemedView type={selected ? 'backgroundSelected' : 'backgroundElement'} style={styles.card}>
+                <ThemedView
+                  type={selected ? 'backgroundSelected' : 'backgroundElement'}
+                  style={[styles.card, { borderColor: selected ? theme.accent : theme.border }]}>
                   <ThemedText type="smallBold">
                     {selected ? '● ' : '○ '}
                     {option.label}
@@ -88,6 +92,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: Spacing.three,
+    borderWidth: 1.5,
     padding: Spacing.three,
     gap: Spacing.one,
   },

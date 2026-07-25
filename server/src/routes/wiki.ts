@@ -1,13 +1,18 @@
 import { Router } from "express";
-import { fetchWikiLocationFacts, searchWikiAnswer } from "../services/wikipedia.js";
-import type { AskRequest, CategoryId, LocationFactsRequest } from "../types.js";
+import { fetchNearbyArticles, fetchWikiLocationFacts, searchWikiAnswer } from "../services/wikipedia.js";
+import type { AskRequest, CategoryId, LocationFactsRequest, NearbyArticlesRequest } from "../types.js";
 
 const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "architecture", "legends", "people", "general"];
 
 export const wikiRouter = Router();
 
+function parseRadiusMiles(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
+  return value;
+}
+
 wikiRouter.post("/wiki-facts", async (req, res) => {
-  const { latitude, longitude, placeLabel, category } = req.body ?? {};
+  const { latitude, longitude, placeLabel, category, radiusMiles } = req.body ?? {};
 
   if (typeof latitude !== "number" || typeof longitude !== "number") {
     res.status(400).json({ error: "latitude and longitude must be numbers" });
@@ -23,6 +28,7 @@ wikiRouter.post("/wiki-facts", async (req, res) => {
     longitude,
     placeLabel: typeof placeLabel === "string" ? placeLabel : undefined,
     category,
+    radiusMiles: parseRadiusMiles(radiusMiles),
   };
 
   try {
@@ -35,7 +41,7 @@ wikiRouter.post("/wiki-facts", async (req, res) => {
 });
 
 wikiRouter.post("/wiki-search", async (req, res) => {
-  const { latitude, longitude, placeLabel, question } = req.body ?? {};
+  const { latitude, longitude, placeLabel, question, radiusMiles } = req.body ?? {};
 
   if (typeof latitude !== "number" || typeof longitude !== "number") {
     res.status(400).json({ error: "latitude and longitude must be numbers" });
@@ -51,6 +57,7 @@ wikiRouter.post("/wiki-search", async (req, res) => {
     longitude,
     placeLabel: typeof placeLabel === "string" ? placeLabel : undefined,
     question: question.trim(),
+    radiusMiles: parseRadiusMiles(radiusMiles),
   };
 
   try {
@@ -59,5 +66,28 @@ wikiRouter.post("/wiki-search", async (req, res) => {
   } catch (err) {
     console.error("Failed to search Wikipedia:", err);
     res.status(502).json({ error: "Failed to search Wikipedia" });
+  }
+});
+
+wikiRouter.post("/wiki-nearby", async (req, res) => {
+  const { latitude, longitude, radiusMiles } = req.body ?? {};
+
+  if (typeof latitude !== "number" || typeof longitude !== "number") {
+    res.status(400).json({ error: "latitude and longitude must be numbers" });
+    return;
+  }
+
+  const request: NearbyArticlesRequest = {
+    latitude,
+    longitude,
+    radiusMiles: parseRadiusMiles(radiusMiles),
+  };
+
+  try {
+    const result = await fetchNearbyArticles(request);
+    res.json(result);
+  } catch (err) {
+    console.error("Failed to fetch nearby Wikipedia articles:", err);
+    res.status(502).json({ error: "Failed to fetch nearby articles from Wikipedia" });
   }
 });

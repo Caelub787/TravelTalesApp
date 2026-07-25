@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { factsSaveId } from '@/hooks/use-saved-items';
+import { useTheme } from '@/hooks/use-theme';
 import type { LocationFactsResponse } from '@/services/api';
 
 interface Props {
@@ -14,9 +15,11 @@ interface Props {
 }
 
 export function StoryCard({ result }: Props) {
+  const theme = useTheme();
+
   if (result.noVerifiedFactsFound) {
     return (
-      <ThemedView type="backgroundElement" style={styles.card}>
+      <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
         <ThemedText type="subtitle">Nothing verified nearby yet</ThemedText>
         <ThemedText themeColor="textSecondary">
           A search around {result.locationLabel} didn't turn up any facts we could confirm from a real
@@ -27,7 +30,7 @@ export function StoryCard({ result }: Props) {
   }
 
   return (
-    <ThemedView type="backgroundElement" style={styles.card}>
+    <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
       <ThemedText type="subtitle">{result.title}</ThemedText>
       {result.locationLabel !== result.title && (
         <ThemedText type="small" themeColor="textSecondary">
@@ -60,6 +63,7 @@ export function StoryCard({ result }: Props) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: Spacing.four,
+    borderWidth: 1,
     padding: Spacing.four,
     gap: Spacing.two,
   },

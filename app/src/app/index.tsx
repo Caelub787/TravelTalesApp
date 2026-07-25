@@ -2,10 +2,9 @@ import { useCallback } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Link } from 'expo-router';
-
 import { LocationExplorer } from '@/components/location-explorer';
 import { LocationHeader } from '@/components/location-header';
+import { NavChip } from '@/components/nav-chip';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -38,15 +37,9 @@ export default function HomeScreen() {
               TravelTales
             </ThemedText>
             <ThemedView style={styles.headerLinks}>
-              <Link href="/map" asChild>
-                <ThemedText type="linkPrimary">🗺️ Map</ThemedText>
-              </Link>
-              <Link href="/saved" asChild>
-                <ThemedText type="linkPrimary">🔖 Saved</ThemedText>
-              </Link>
-              <Link href="/settings" asChild>
-                <ThemedText type="linkPrimary">⚙️ Settings</ThemedText>
-              </Link>
+              <NavChip href="/map" label="🗺️ Map" />
+              <NavChip href="/saved" label="🔖 Saved" />
+              <NavChip href="/settings" label="⚙️ Settings" />
             </ThemedView>
           </ThemedView>
 

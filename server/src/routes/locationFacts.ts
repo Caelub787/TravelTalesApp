@@ -6,8 +6,13 @@ const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "archite
 
 export const locationFactsRouter = Router();
 
+function parseRadiusMiles(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
+  return value;
+}
+
 locationFactsRouter.post("/location-facts", async (req, res) => {
-  const { latitude, longitude, placeLabel, category } = req.body ?? {};
+  const { latitude, longitude, placeLabel, category, radiusMiles } = req.body ?? {};
 
   if (typeof latitude !== "number" || typeof longitude !== "number") {
     res.status(400).json({ error: "latitude and longitude must be numbers" });
@@ -23,6 +28,7 @@ locationFactsRouter.post("/location-facts", async (req, res) => {
     longitude,
     placeLabel: typeof placeLabel === "string" ? placeLabel : undefined,
     category,
+    radiusMiles: parseRadiusMiles(radiusMiles),
   };
 
   try {

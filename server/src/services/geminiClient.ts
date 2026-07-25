@@ -9,6 +9,7 @@ import type {
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
+const DEFAULT_RADIUS_MILES = 10;
 
 const CATEGORY_GUIDANCE: Record<CategoryId, string> = {
   history: "significant historical events, founding dates, wars, or turning points tied to this exact spot",
@@ -79,11 +80,13 @@ Rules:
 }
 
 export async function fetchLocationFacts(req: LocationFactsRequest): Promise<LocationFactsResponse> {
-  const { latitude, longitude, placeLabel, category } = req;
+  const { latitude, longitude, placeLabel, category, radiusMiles } = req;
 
   const userMessage = `Current GPS coordinates: ${latitude}, ${longitude}${
     placeLabel ? ` (approximate place: ${placeLabel})` : ""
-  }. Category requested: ${category}.`;
+  }. Category requested: ${category}. Search radius: stay within approximately ${
+    radiusMiles ?? DEFAULT_RADIUS_MILES
+  } miles of these coordinates.`;
 
   const response = await ai.models.generateContent({
     model: MODEL,
@@ -155,11 +158,11 @@ Rules:
 }
 
 export async function answerLocationQuestion(req: AskRequest): Promise<AskResponse> {
-  const { latitude, longitude, placeLabel, question } = req;
+  const { latitude, longitude, placeLabel, question, radiusMiles } = req;
 
   const userMessage = `Current GPS coordinates: ${latitude}, ${longitude}${
     placeLabel ? ` (approximate place: ${placeLabel})` : ""
-  }. Question: ${question}`;
+  }. Search radius: stay within approximately ${radiusMiles ?? DEFAULT_RADIUS_MILES} miles of these coordinates unless the question requires broader context. Question: ${question}`;
 
   const response = await ai.models.generateContent({
     model: MODEL,

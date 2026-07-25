@@ -1,7 +1,8 @@
 export type CategoryId = 'history' | 'culture' | 'nature' | 'architecture' | 'legends' | 'people' | 'general';
+export type CategorySelection = CategoryId | 'all';
 
 export interface Category {
-  id: CategoryId;
+  id: CategorySelection;
   label: string;
   icon: string;
 }
@@ -15,3 +16,5 @@ export const CATEGORIES: Category[] = [
   { id: 'legends', label: 'Legends & Folklore', icon: '🌙' },
   { id: 'people', label: 'Notable People', icon: '👤' },
 ];
+
+export const ALL_NEARBY_CATEGORY: Category = { id: 'all', label: 'Browse All Nearby', icon: '🗂️' };
