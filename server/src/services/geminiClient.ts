@@ -8,7 +8,7 @@ import type {
 } from "../types.js";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+const MODEL = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
 
 const CATEGORY_GUIDANCE: Record<CategoryId, string> = {
   history: "significant historical events, founding dates, wars, or turning points tied to this exact spot",
