@@ -29,9 +29,11 @@ export function StoryCard({ result }: Props) {
   return (
     <ThemedView type="backgroundElement" style={styles.card}>
       <ThemedText type="subtitle">{result.title}</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        {result.locationLabel}
-      </ThemedText>
+      {result.locationLabel !== result.title && (
+        <ThemedText type="small" themeColor="textSecondary">
+          {result.locationLabel}
+        </ThemedText>
+      )}
       <ThemedText style={styles.summary}>{result.summary}</ThemedText>
 
       <ThemedView style={styles.actionRow}>
