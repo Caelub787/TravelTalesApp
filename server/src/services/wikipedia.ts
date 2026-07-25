@@ -350,7 +350,11 @@ export interface GroundingExcerpt {
   url: string;
 }
 
-const MAX_GROUNDING_ARTICLES = 8;
+const MAX_GROUNDING_ARTICLES = 5;
+// Keeps the combined prompt (Wikipedia + web excerpts, per grounding request) well within
+// free-tier tokens-per-minute limits — a handful of uncapped full intros for busy
+// locations was easily large enough to trip Groq's free-tier rate limit on a single call.
+const MAX_GROUNDING_EXCERPT_CHARS = 800;
 
 // Real, verifiable Wikipedia text for Story Mode's AI to write from — grounding it in
 // actual nearby articles instead of the model's own (unverifiable, possibly invented)
@@ -371,7 +375,8 @@ export async function fetchGroundingExcerpts(
   for (const page of nearby) {
     const extract = byId.get(page.pageid);
     if (!extract?.extract || !extract.fullurl) continue;
-    excerpts.push({ title: extract.title, text: extract.extract.trim(), url: extract.fullurl });
+    const text = extract.extract.trim().slice(0, MAX_GROUNDING_EXCERPT_CHARS);
+    excerpts.push({ title: extract.title, text, url: extract.fullurl });
   }
   return excerpts;
 }

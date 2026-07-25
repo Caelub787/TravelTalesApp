@@ -16,12 +16,13 @@ function isAiQuotaError(err: unknown): boolean {
   );
 }
 
-// Rate-limit errors come back as a raw JSON blob from the provider — not useful to a user
-// in an error toast. Recognize that specific case and explain what actually happened and
-// what to do about it, instead of dumping the API's own error payload.
+// Rate-limit errors come back as a raw JSON blob from the provider — lead with a plain-
+// English explanation, but keep the technical detail attached so a *specific* limit (RPM
+// vs TPM vs daily) is still visible instead of hiding it behind a friendly-but-useless string.
 export function describeAiError(err: unknown, fallback: string): string {
   if (isAiQuotaError(err)) {
-    return "The free AI tier is rate-limited right now. Wait a bit and try again, or switch to Wiki Facts mode in Settings — it works without any AI quota.";
+    const detail = err instanceof Error ? err.message : String(err);
+    return `The free AI tier is rate-limited right now. Wait a bit and try again, or switch to Wiki Facts mode in Settings — it works without any AI quota. (${detail})`;
   }
   return errorMessage(err, fallback);
 }

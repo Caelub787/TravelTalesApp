@@ -88,7 +88,7 @@ async function gatherGroundingContext(
 
   let webExcerpts: GroundingExcerpt[] = [];
   try {
-    const webResults = await searchWeb(searchQuery);
+    const webResults = await searchWeb(searchQuery, 3);
     webExcerpts = webResults.map((result) => ({ title: result.title, text: result.snippet, url: result.url }));
   } catch (err) {
     console.error("Web search failed, continuing with Wikipedia grounding only:", err);
