@@ -33,7 +33,7 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content}>
-          <ThemedView style={styles.titleRow}>
+          <ThemedView style={styles.header}>
             <ThemedText type="title" style={styles.appTitle}>
               TravelTales
             </ThemedText>
@@ -113,18 +113,17 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.three,
   },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  header: {
+    gap: Spacing.two,
   },
   headerLinks: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.three,
   },
   appTitle: {
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: 28,
+    lineHeight: 34,
   },
   explorerSpacing: {
     marginTop: Spacing.two,
