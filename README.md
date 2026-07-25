@@ -1,136 +1,170 @@
 # TravelTales
 
-A mobile app that watches your device's GPS in real time and surfaces real, verifiable
-history, culture, nature, architecture, folklore, and notable-people facts about wherever
-you currently are — picked by category, grounded in live web search, and always cited so
-you can check the source yourself.
+An app that watches your device's GPS in real time and surfaces real, verifiable history,
+culture, nature, architecture, folklore, and notable-people facts about wherever you
+currently are — picked by category, always cited so you can check the source yourself.
+
+Two content sources, switchable anytime in-app under **⚙️ Settings**:
+
+- **✨ Story Mode** — AI-written narratives and free-form question answering, grounded in
+  live Google Search results, powered by the **free tier of Google's Gemini API**.
+- **📖 Wiki Facts** — real facts pulled directly from nearby Wikipedia articles. No AI, no
+  API key, no rate limits, always free.
 
 ## How it works
 
 ```
-[Expo app] --- POST /api/location-facts ---> [Node/Express server] ---> [Anthropic API]
- (GPS, UI)      { lat, lon, category }         (holds the API key)      (web search +
-                                                                          structured output)
+[App] --- POST /api/location-facts ---> [Node/Express server] ---> [Gemini API (free tier)]
+      --- POST /api/ask             --->                       --->  (Story Mode: search +
+      --- POST /api/wiki-facts      ---> (holds the Gemini key)      structured output)
+      --- POST /api/wiki-search     --->                       --->  [Wikipedia API]
+                                                                       (Wiki Facts: free,
+                                                                        no key needed)
 ```
 
-- **`app/`** — a React Native app (Expo + Expo Router) that tracks your live location,
-  lets you pick a category, and renders the resulting stories with tappable source links.
-- **`server/`** — a small Express backend that calls the Claude API with the **web search
-  tool** enabled, forcing every fact returned to be grounded in an actual search result
-  with a real title + URL. The Anthropic API key lives only here — it is never shipped to
-  the mobile app.
+- **`app/`** — an Expo (React Native + Expo Router) app. Runs as a native Android/iOS app
+  *or* as a regular website (`react-native-web`) — same codebase, same features, minus
+  background tracking on web (browsers don't allow that, see below).
+- **`server/`** — a small Express backend. Nothing sensitive ever ships to the client: the
+  Gemini key lives only here.
 
 **Also included**: a map screen for dropping a pin anywhere to get stories about that spot
-instead of just your current location, a free-form "ask a question" box (with voice input),
-and a "read aloud" button on every response. No saved history or accounts yet.
+instead of just your current location (native: tap-to-pin on a real map; web: manual
+coordinate entry, since the map library has no interactive web support), a free-form "ask
+a question" box with voice input, and a "read aloud" button on every response. No saved
+history or accounts yet.
 
 ## Prerequisites
 
 - Node.js 20+
-- An [Anthropic API key](https://console.anthropic.com/) with access to a model that
-  supports the web search tool
-- [Expo Go](https://expo.dev/go) on your phone (easiest way to test), or an iOS
-  simulator / Android emulator
-- Your phone and computer on the same Wi-Fi network (for local dev)
+- A free [Gemini API key](https://aistudio.google.com/apikey) (only needed for Story Mode
+  — Wiki Facts mode works with no key at all)
+- [Expo Go](https://expo.dev/go) on your phone for native testing, or just a browser for
+  the web build
+- Your phone and computer on the same Wi-Fi network (for local native dev only)
 
 ## 1. Run the backend
 
 ```bash
 cd server
 cp .env.example .env
-# edit .env and set ANTHROPIC_API_KEY=sk-ant-...
+# edit .env and set GEMINI_API_KEY=... (skip this if you'll only use Wiki Facts mode)
 npm install
 npm run dev
 ```
 
-This starts the server on `http://localhost:3001` (configurable via `PORT`). Verify it's
-up:
+Starts on `http://localhost:3001` (configurable via `PORT`). Verify it's up:
 
 ```bash
 curl http://localhost:3001/health
 ```
 
-## 2. Point the app at your backend
+## 2. Run the app
 
-Find your computer's LAN IP address (e.g. `192.168.1.42`):
-
-- macOS: `ipconfig getifaddr en0`
-- Linux: `hostname -I`
-- Windows: `ipconfig` (look for IPv4 Address)
-
-Create `app/.env`:
-
-```
-EXPO_PUBLIC_API_URL=http://192.168.1.42:3001
-```
-
-(`localhost` won't work from a physical phone — it has to be your computer's real LAN IP.
-If you're testing purely in an iOS/Android simulator on the same machine, `localhost` does
-work there.)
-
-## 3. Run the app
+**As a website** (works on any device with a browser, including iPhone — no Apple
+Developer account needed, but only while the tab is open/foreground):
 
 ```bash
 cd app
+echo "EXPO_PUBLIC_API_URL=http://localhost:3001" > .env
 npm install
+npx expo start --web
+```
+
+**As a native app** on your own phone via Expo Go — same steps but without `--web`, and
+`EXPO_PUBLIC_API_URL` needs your computer's LAN IP instead of `localhost` (find it with
+`ipconfig getifaddr en0` on macOS, `hostname -I` on Linux, or `ipconfig` on Windows —
+`localhost` only works from a simulator on the same machine, not a physical phone):
+
+```bash
 npx expo start
 ```
 
-Scan the QR code with Expo Go (Android) or the Camera app (iOS), or press `i`/`a` to open
-a simulator/emulator. Grant location permission when prompted, then tap a category.
+Scan the QR code with Expo Go (Android) or the Camera app (iOS). Grant location permission
+when prompted, then tap a category.
 
-## Map screen and Google Maps API key
+## Deploying for real use (not just local dev)
 
-The map screen (`app/src/app/map.tsx`) uses `react-native-maps`, which requires a free
-Google Maps API key on Android. Without one, the map screen will fail to render tiles.
+Local dev only works while your computer is running the server and both devices are on
+the same network. To actually use this day-to-day (e.g. sharing with a friend), both
+pieces need to be deployed somewhere with a public URL:
 
-1. In the [Google Cloud Console](https://console.cloud.google.com/), create a project (or
-   use an existing one) and enable the **"Maps SDK for Android"** API.
+- **Backend** (`server/`): any Node host works — e.g. [Railway](https://railway.app) via
+  `railway up` from inside `server/`, with `GEMINI_API_KEY` set as an environment variable
+  there.
+- **Frontend web build**: export a static build (`npx expo export -p web` from `app/`,
+  after setting `EXPO_PUBLIC_API_URL` to your deployed backend's URL — this is baked in at
+  build time) and deploy the resulting `app/dist` folder to any static host, e.g.
+  [Vercel](https://vercel.com) via `vercel --prod` run from inside `app/dist`.
+- **Native app**: see the EAS sections below.
+
+## Map screen and Google Maps API key (native only)
+
+The native map screen (`app/src/app/map.tsx`) uses `react-native-maps`, which requires a
+free Google Maps API key on Android:
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create/select a
+   project and enable **"Maps SDK for Android"**.
 2. Create an API key (APIs & Services → Credentials → Create Credentials → API key).
-3. Put it in `app/app.json` under `expo.android.config.googleMaps.apiKey`, replacing the
-   `REPLACE_WITH_YOUR_GOOGLE_MAPS_API_KEY` placeholder.
-4. Rebuild the app (native config changes like this require a full rebuild, not an OTA
-   update — see below).
+3. Put it in `app/app.json` under `expo.android.config.googleMaps.apiKey`.
+4. Rebuild the native app (native config changes require a full `eas build`, not an OTA
+   update).
+
+The web build (`app/src/app/map.web.tsx`) doesn't need this — it uses manual coordinate
+entry instead, since `react-native-maps` has no interactive web implementation.
 
 ## Voice input and text-to-speech
 
-- **Ask a question** (text or 🎤 voice) on the home screen or after dropping a pin on the
-  map — answers are grounded in web search the same way category facts are, with cited
-  sources.
-- Every response (category facts and question answers) has a **🔊 Read aloud** button
-  using on-device text-to-speech (`expo-speech`) — no extra API calls or cost.
-- Voice input uses `expo-speech-recognition`, which needs microphone + speech recognition
-  permission (the app will prompt for this the first time you tap 🎤).
+- **Ask a question** (text or 🎤 voice) on the home screen or after picking a location on
+  the map. In Story Mode, answers are grounded in live search with cited sources; in Wiki
+  Facts mode, this returns matching Wikipedia article snippets instead of a written answer.
+- Every response has a **🔊 Read aloud** button using on-device text-to-speech
+  (`expo-speech`) — free, no extra API calls, works in both modes.
+- Voice input uses `expo-speech-recognition` (native) or the browser's built-in Web Speech
+  API (web) — needs microphone permission, prompted the first time you tap 🎤.
 
-## Updating the app after a rebuild (EAS Update)
-
-This project is configured for **EAS Update**, so most future changes (anything that
-doesn't add a new native module or native config, like new categories, UI tweaks, or
-prompt changes) can be pushed to the already-installed app in seconds instead of
-requiring a new APK build/install:
+## Building/updating the native app (EAS)
 
 ```bash
 cd app
-npx eas-cli@latest update --branch preview --message "describe the change"
+npx eas-cli@latest build -p android --profile preview   # first build, or after adding a
+                                                          # new native dependency/config
+npx eas-cli@latest update --branch preview --message "describe the change"   # everything
+                                                                                # else, instant
 ```
 
-The app checks for updates on launch. A full rebuild (`eas build`) is only needed again
-when adding a new native dependency (like another native module) or changing native
-config in `app.json` (like the Google Maps API key above).
+A full rebuild is only needed when adding a new native module or changing native config
+(like the Maps API key above) — everything else (new categories, UI tweaks, prompt
+changes) can ship via `eas update` in seconds.
+
+## Why the web build can't track/speak in the background
+
+iOS (and browsers generally) block background GPS tracking and background audio for web
+content — this is a deliberate platform restriction, not something fixable in this
+codebase. The web build works great in the foreground (open, actively using it) but goes
+quiet the moment the tab is backgrounded or the phone locks. Only a genuine native app with
+explicit background-mode permissions can do that, which requires proper app-store-style
+distribution (TestFlight for iOS, in particular).
 
 ## Notes on "verified facts"
 
-Every fact returned by the backend is required (via prompt instructions and a forced
-structured-output schema) to carry a real source title and URL found through Claude's web
-search tool during that request. This significantly reduces hallucination compared to
-asking a model to recall facts from memory, but it is not a formal fact-checking
-pipeline — the UI shows sources specifically so you can verify anything that matters to
-you. If no verifiable facts are found near a location, the app says so rather than
-inventing content.
+**Story Mode**: every fact is required (via prompt instructions and forced structured
+output) to carry a real source title and URL found through Gemini's Google Search
+grounding during that request. This significantly reduces hallucination compared to
+recalling facts from memory, but it's not a formal fact-checking pipeline — the UI shows
+sources so you can verify anything that matters to you.
+
+**Wiki Facts mode**: facts are pulled directly from live Wikipedia article text, not
+AI-generated at all — the "hallucination" risk here is whatever's already in the relevant
+Wikipedia articles, same as reading Wikipedia directly.
+
+If no verifiable facts are found near a location in either mode, the app says so rather
+than inventing content.
 
 ## Cost note
 
-Each category tap triggers a live Claude API call with web search (bounded to 5 searches
-per request in `server/src/services/anthropicClient.ts`). The app deliberately does not
-auto-fetch on every GPS update — it only prompts you to refresh after you've moved
-~400m — to keep usage predictable.
+Story Mode uses Gemini's free tier, which has rate limits — for two personal users this
+should never be an issue, but very heavy use could hit them. Wiki Facts mode has no
+meaningful usage limit for personal use. The app deliberately does not auto-fetch on every
+GPS update in either mode — it only prompts you to refresh after you've moved ~400m — to
+keep usage low regardless.

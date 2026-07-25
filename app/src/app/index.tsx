@@ -37,9 +37,14 @@ export default function HomeScreen() {
             <ThemedText type="title" style={styles.appTitle}>
               TravelTales
             </ThemedText>
-            <Link href="/map" asChild>
-              <ThemedText type="linkPrimary">🗺️ Map</ThemedText>
-            </Link>
+            <ThemedView style={styles.headerLinks}>
+              <Link href="/map" asChild>
+                <ThemedText type="linkPrimary">🗺️ Map</ThemedText>
+              </Link>
+              <Link href="/settings" asChild>
+                <ThemedText type="linkPrimary">⚙️ Settings</ThemedText>
+              </Link>
+            </ThemedView>
           </ThemedView>
 
           {permission === 'denied' && (
@@ -109,6 +114,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerLinks: {
+    flexDirection: 'row',
+    gap: Spacing.three,
   },
   appTitle: {
     fontSize: 32,

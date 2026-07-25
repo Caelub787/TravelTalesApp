@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { answerLocationQuestion } from "../services/anthropicClient.js";
+import { answerLocationQuestion } from "../services/geminiClient.js";
 import type { AskRequest } from "../types.js";
 
 export const askRouter = Router();
@@ -28,6 +28,6 @@ askRouter.post("/ask", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Failed to answer location question:", err);
-    res.status(502).json({ error: "Failed to get an answer from Claude" });
+    res.status(502).json({ error: "Failed to get an answer from Gemini" });
   }
 });

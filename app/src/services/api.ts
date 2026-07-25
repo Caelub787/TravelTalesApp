@@ -70,3 +70,11 @@ export function fetchLocationFacts(req: LocationFactsRequest): Promise<LocationF
 export function askQuestion(req: AskRequest): Promise<AskResponse> {
   return postJson<AskResponse>('/api/ask', req);
 }
+
+export function fetchWikiFacts(req: LocationFactsRequest): Promise<LocationFactsResponse> {
+  return postJson<LocationFactsResponse>('/api/wiki-facts', req);
+}
+
+export function searchWiki(req: AskRequest): Promise<AskResponse> {
+  return postJson<AskResponse>('/api/wiki-search', req);
+}

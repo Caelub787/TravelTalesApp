@@ -3,9 +3,10 @@ import express from "express";
 import cors from "cors";
 import { locationFactsRouter } from "./routes/locationFacts.js";
 import { askRouter } from "./routes/ask.js";
+import { wikiRouter } from "./routes/wiki.js";
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.warn("Warning: ANTHROPIC_API_KEY is not set. /api/location-facts will fail until it is.");
+if (!process.env.GEMINI_API_KEY) {
+  console.warn("Warning: GEMINI_API_KEY is not set. Story Mode (/api/location-facts, /api/ask) will fail until it is.");
 }
 
 const app = express();
@@ -18,6 +19,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api", locationFactsRouter);
 app.use("/api", askRouter);
+app.use("/api", wikiRouter);
 
 const port = Number(process.env.PORT) || 3001;
 app.listen(port, () => {

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { fetchLocationFacts } from "../services/anthropicClient.js";
+import { fetchLocationFacts } from "../services/geminiClient.js";
 import type { CategoryId, LocationFactsRequest } from "../types.js";
 
 const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "architecture", "legends", "people", "general"];
@@ -30,6 +30,6 @@ locationFactsRouter.post("/location-facts", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Failed to fetch location facts:", err);
-    res.status(502).json({ error: "Failed to fetch location facts from Claude" });
+    res.status(502).json({ error: "Failed to fetch location facts from Gemini" });
   }
 });
