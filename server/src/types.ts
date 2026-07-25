@@ -4,7 +4,8 @@ export type CategoryId =
   | "nature"
   | "architecture"
   | "legends"
-  | "people";
+  | "people"
+  | "general";
 
 export interface LocationFactsRequest {
   latitude: number;
@@ -29,4 +30,19 @@ export interface LocationFactsResponse {
   locationLabel: string;
   facts: LocationFact[];
   noVerifiedFactsFound: boolean;
+}
+
+export interface AskRequest {
+  latitude: number;
+  longitude: number;
+  placeLabel?: string;
+  question: string;
+}
+
+export interface AskResponse {
+  question: string;
+  answer: string;
+  locationLabel: string;
+  sources: FactSource[];
+  noVerifiedAnswerFound: boolean;
 }

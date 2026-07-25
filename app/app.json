@@ -2,11 +2,18 @@
   "expo": {
     "name": "TravelTales",
     "slug": "traveltales",
+    "owner": "calebmreed",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "traveltales",
     "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/22cf42f0-09b3-48c6-9a4d-d958de32b486"
+    },
     "ios": {
       "icon": "./assets/expo.icon"
     },
@@ -18,7 +25,12 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "REPLACE_WITH_YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      }
     },
     "web": {
       "output": "static",
@@ -26,6 +38,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-updates",
       [
         "expo-location",
         {
@@ -39,11 +52,24 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      "react-native-maps",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "TravelTales uses your microphone to let you ask questions about where you are out loud.",
+          "speechRecognitionPermission": "TravelTales uses speech recognition to turn your spoken question into text."
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "22cf42f0-09b3-48c6-9a4d-d958de32b486"
+      }
     }
   }
 }

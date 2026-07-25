@@ -20,8 +20,9 @@ you can check the source yourself.
   with a real title + URL. The Anthropic API key lives only here — it is never shipped to
   the mobile app.
 
-**v1 scope**: live GPS + category picker + fact/story fetch with citations. No map view,
-no saved history, no accounts (see the codebase's task history for what's planned next).
+**Also included**: a map screen for dropping a pin anywhere to get stories about that spot
+instead of just your current location, a free-form "ask a question" box (with voice input),
+and a "read aloud" button on every response. No saved history or accounts yet.
 
 ## Prerequisites
 
@@ -77,6 +78,45 @@ npx expo start
 
 Scan the QR code with Expo Go (Android) or the Camera app (iOS), or press `i`/`a` to open
 a simulator/emulator. Grant location permission when prompted, then tap a category.
+
+## Map screen and Google Maps API key
+
+The map screen (`app/src/app/map.tsx`) uses `react-native-maps`, which requires a free
+Google Maps API key on Android. Without one, the map screen will fail to render tiles.
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create a project (or
+   use an existing one) and enable the **"Maps SDK for Android"** API.
+2. Create an API key (APIs & Services → Credentials → Create Credentials → API key).
+3. Put it in `app/app.json` under `expo.android.config.googleMaps.apiKey`, replacing the
+   `REPLACE_WITH_YOUR_GOOGLE_MAPS_API_KEY` placeholder.
+4. Rebuild the app (native config changes like this require a full rebuild, not an OTA
+   update — see below).
+
+## Voice input and text-to-speech
+
+- **Ask a question** (text or 🎤 voice) on the home screen or after dropping a pin on the
+  map — answers are grounded in web search the same way category facts are, with cited
+  sources.
+- Every response (category facts and question answers) has a **🔊 Read aloud** button
+  using on-device text-to-speech (`expo-speech`) — no extra API calls or cost.
+- Voice input uses `expo-speech-recognition`, which needs microphone + speech recognition
+  permission (the app will prompt for this the first time you tap 🎤).
+
+## Updating the app after a rebuild (EAS Update)
+
+This project is configured for **EAS Update**, so most future changes (anything that
+doesn't add a new native module or native config, like new categories, UI tweaks, or
+prompt changes) can be pushed to the already-installed app in seconds instead of
+requiring a new APK build/install:
+
+```bash
+cd app
+npx eas-cli@latest update --branch preview --message "describe the change"
+```
+
+The app checks for updates on launch. A full rebuild (`eas build`) is only needed again
+when adding a new native dependency (like another native module) or changing native
+config in `app.json` (like the Google Maps API key above).
 
 ## Notes on "verified facts"
 

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { fetchLocationFacts } from "../services/anthropicClient.js";
 import type { CategoryId, LocationFactsRequest } from "../types.js";
 
-const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "architecture", "legends", "people"];
+const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "architecture", "legends", "people", "general"];
 
 export const locationFactsRouter = Router();
 

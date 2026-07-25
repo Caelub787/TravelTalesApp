@@ -2,12 +2,12 @@ import { useCallback } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CategoryGrid } from '@/components/category-grid';
+import { Link } from 'expo-router';
+
+import { LocationExplorer } from '@/components/location-explorer';
 import { LocationHeader } from '@/components/location-header';
-import { StoryCard } from '@/components/story-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import type { CategoryId } from '@/constants/categories';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useLiveLocation } from '@/hooks/use-live-location';
 import { useLocationFacts } from '@/hooks/use-location-facts';
@@ -17,7 +17,7 @@ export default function HomeScreen() {
   const { category, result, status, error: factsError, load, hasMovedSinceLastFetch } = useLocationFacts();
 
   const handleSelectCategory = useCallback(
-    (nextCategory: CategoryId) => {
+    (nextCategory: Parameters<typeof load>[0]) => {
       if (!coords) return;
       load(nextCategory, coords, placeLabel);
     },
@@ -33,9 +33,14 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content}>
-          <ThemedText type="title" style={styles.appTitle}>
-            TravelTales
-          </ThemedText>
+          <ThemedView style={styles.titleRow}>
+            <ThemedText type="title" style={styles.appTitle}>
+              TravelTales
+            </ThemedText>
+            <Link href="/map" asChild>
+              <ThemedText type="linkPrimary">🗺️ Map</ThemedText>
+            </Link>
+          </ThemedView>
 
           {permission === 'denied' && (
             <ThemedView type="backgroundElement" style={styles.notice}>
@@ -66,26 +71,17 @@ export default function HomeScreen() {
                 hasMoved={hasMovedSinceLastFetch(coords)}
                 onRefresh={handleRefresh}
               />
-
-              <ThemedText type="smallBold" style={styles.sectionLabel}>
-                What do you want to know about here?
-              </ThemedText>
-              <CategoryGrid selected={category} disabled={!coords} onSelect={handleSelectCategory} />
-
-              {status === 'loading' && (
-                <ThemedView style={styles.notice}>
-                  <ActivityIndicator />
-                  <ThemedText themeColor="textSecondary">Searching for verified stories…</ThemedText>
-                </ThemedView>
-              )}
-
-              {status === 'error' && (
-                <ThemedView type="backgroundElement" style={styles.notice}>
-                  <ThemedText>Couldn't load stories: {factsError}</ThemedText>
-                </ThemedView>
-              )}
-
-              {status === 'success' && result && <StoryCard result={result} />}
+              <ThemedView style={styles.explorerSpacing}>
+                <LocationExplorer
+                  coords={coords}
+                  placeLabel={placeLabel}
+                  category={category}
+                  factsResult={result}
+                  factsStatus={status}
+                  factsError={factsError}
+                  onSelectCategory={handleSelectCategory}
+                />
+              </ThemedView>
             </>
           )}
         </ScrollView>
@@ -108,11 +104,16 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.three,
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   appTitle: {
     fontSize: 32,
     lineHeight: 38,
   },
-  sectionLabel: {
+  explorerSpacing: {
     marginTop: Spacing.two,
   },
   notice: {

@@ -4,12 +4,14 @@
   },
   "build": {
     "preview": {
+      "channel": "preview",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "channel": "production",
       "autoIncrement": true
     }
   },

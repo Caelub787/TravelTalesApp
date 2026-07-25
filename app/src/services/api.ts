@@ -27,23 +27,46 @@ export interface LocationFactsRequest {
   category: CategoryId;
 }
 
-export async function fetchLocationFacts(req: LocationFactsRequest): Promise<LocationFactsResponse> {
+export interface AskRequest {
+  latitude: number;
+  longitude: number;
+  placeLabel?: string;
+  question: string;
+}
+
+export interface AskResponse {
+  question: string;
+  answer: string;
+  locationLabel: string;
+  sources: FactSource[];
+  noVerifiedAnswerFound: boolean;
+}
+
+async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
   if (!API_URL) {
     throw new Error(
       'EXPO_PUBLIC_API_URL is not set. Point it at your running TravelTales server (see README).'
     );
   }
 
-  const response = await fetch(`${API_URL}/api/location-facts`, {
+  const response = await fetch(`${API_URL}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    throw new Error(body?.error ?? `Request failed with status ${response.status}`);
+    const responseBody = await response.json().catch(() => null);
+    throw new Error(responseBody?.error ?? `Request failed with status ${response.status}`);
   }
 
   return response.json();
+}
+
+export function fetchLocationFacts(req: LocationFactsRequest): Promise<LocationFactsResponse> {
+  return postJson<LocationFactsResponse>('/api/location-facts', req);
+}
+
+export function askQuestion(req: AskRequest): Promise<AskResponse> {
+  return postJson<AskResponse>('/api/ask', req);
 }

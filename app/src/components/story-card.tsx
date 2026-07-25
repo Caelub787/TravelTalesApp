@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 
 import { ExternalLink } from '@/components/external-link';
+import { SpeakButton } from '@/components/speak-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -30,6 +31,8 @@ export function StoryCard({ result }: Props) {
         {result.locationLabel}
       </ThemedText>
       <ThemedText style={styles.summary}>{result.summary}</ThemedText>
+
+      <SpeakButton text={`${result.title}. ${result.summary}`} />
 
       <ThemedView style={styles.factList}>
         {result.facts.map((fact, index) => (

@@ -2,6 +2,7 @@ import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 
 import { distanceMeters } from '@/utils/distance';
+import { formatPlaceLabel } from '@/utils/geocode';
 
 const REVERSE_GEOCODE_MIN_DISTANCE_METERS = 150;
 
@@ -17,10 +18,6 @@ export interface LiveLocationState {
   coords: Coords | null;
   placeLabel: string | null;
   error: string | null;
-}
-
-function formatPlaceLabel(address: Location.LocationGeocodedAddress): string {
-  return [address.city ?? address.subregion, address.region].filter(Boolean).join(', ') || 'Unknown area';
 }
 
 export function useLiveLocation(): LiveLocationState {

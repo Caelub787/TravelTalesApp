@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { locationFactsRouter } from "./routes/locationFacts.js";
+import { askRouter } from "./routes/ask.js";
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.warn("Warning: ANTHROPIC_API_KEY is not set. /api/location-facts will fail until it is.");
@@ -16,6 +17,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api", locationFactsRouter);
+app.use("/api", askRouter);
 
 const port = Number(process.env.PORT) || 3001;
 app.listen(port, () => {
