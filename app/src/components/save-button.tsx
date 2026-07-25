@@ -10,5 +10,12 @@ export function SaveButton({ id, item }: Props) {
   const { isSaved, toggleSave } = useSavedItems();
   const saved = isSaved(id);
 
-  return <ChipButton label={saved ? '🔖 Saved' : '🔖 Save'} active={saved} onPress={() => toggleSave(item)} />;
+  return (
+    <ChipButton
+      label={saved ? 'Saved' : 'Save'}
+      icon={saved ? 'bookmark' : 'bookmark-outline'}
+      active={saved}
+      onPress={() => toggleSave(item)}
+    />
+  );
 }

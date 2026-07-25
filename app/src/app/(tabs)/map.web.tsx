@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import L, { type Map as LeafletMap } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -5,14 +6,13 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet';
 
-import { router } from 'expo-router';
-
 import { LocationExplorer } from '@/components/location-explorer';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useLiveLocation, type Coords } from '@/hooks/use-live-location';
 import { useLocationFacts } from '@/hooks/use-location-facts';
+import { useTheme } from '@/hooks/use-theme';
 import { reverseGeocode } from '@/utils/geocode';
 
 // Leaflet's default marker icons resolve to broken paths under most bundlers (Metro
@@ -38,6 +38,7 @@ function ClickHandler({ onPick }: { onPick: (coords: Coords) => void }) {
 }
 
 export default function MapScreenWeb() {
+  const theme = useTheme();
   const { coords } = useLiveLocation();
   const [pin, setPin] = useState<Coords | null>(null);
   const [pinLabel, setPinLabel] = useState<string | null>(null);
@@ -81,16 +82,15 @@ export default function MapScreenWeb() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ThemedView style={styles.header}>
-          <Pressable onPress={() => router.back()}>
-            <ThemedText type="linkPrimary">‹ Back</ThemedText>
-          </Pressable>
-          <ThemedText type="subtitle">Pick a spot</ThemedText>
-          {coords ? (
-            <Pressable onPress={handleCenterOnMe}>
-              <ThemedText type="linkPrimary">📍 Me</ThemedText>
+          <ThemedText type="title" style={styles.title}>
+            Pick a spot
+          </ThemedText>
+          {coords && (
+            <Pressable
+              onPress={handleCenterOnMe}
+              style={[styles.locateButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+              <Ionicons name="locate" size={18} color={theme.accent} />
             </Pressable>
-          ) : (
-            <ThemedView style={styles.headerSpacer} />
           )}
         </ThemedView>
 
@@ -130,8 +130,11 @@ export default function MapScreenWeb() {
               <ThemedText type="small" themeColor="textSecondary">
                 Selected location
               </ThemedText>
-              <ThemedText type="subtitle">
-                {geocoding ? 'Locating…' : pinLabel ?? `${pin.latitude.toFixed(4)}, ${pin.longitude.toFixed(4)}`}
+              <ThemedText type="subtitle" style={styles.pinLabel}>
+                {geocoding ? 'Locating…' : pinLabel ?? 'Unknown area'}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary" style={styles.pinCoords}>
+                {pin.latitude.toFixed(4)}, {pin.longitude.toFixed(4)}
               </ThemedText>
 
               {geocoding && <ActivityIndicator style={styles.geocodingSpinner} />}
@@ -172,8 +175,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
   },
-  headerSpacer: {
-    width: 48,
+  title: {
+    fontSize: 24,
+    lineHeight: 30,
+  },
+  locateButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Spacing.five,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mapWrapper: {
     width: '100%',
@@ -182,6 +194,13 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.four,
     gap: Spacing.two,
+  },
+  pinLabel: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  pinCoords: {
+    fontFamily: 'monospace',
   },
   geocodingSpinner: {
     alignSelf: 'flex-start',

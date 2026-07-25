@@ -1,22 +1,29 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 
 import { AnswerCard } from '@/components/answer-card';
 import { AskBox } from '@/components/ask-box';
-import { CategoryGrid } from '@/components/category-grid';
+import { CategoryChips } from '@/components/category-chips';
 import { NearbyArticlesList } from '@/components/nearby-articles-list';
 import { RadiusControl } from '@/components/radius-control';
 import { StoryCard } from '@/components/story-card';
+import { SurpriseButton } from '@/components/surprise-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import type { CategoryId, CategorySelection } from '@/constants/categories';
+import { ALL_CATEGORY, CATEGORIES, type CategoryId } from '@/constants/categories';
 import { Spacing } from '@/constants/theme';
 import { useAskQuestion } from '@/hooks/use-ask-question';
 import { useContentMode } from '@/hooks/use-content-mode';
 import type { Coords } from '@/hooks/use-live-location';
 import type { LocationFactsStatus } from '@/hooks/use-location-facts';
 import { useNearbyArticles } from '@/hooks/use-nearby-articles';
-import type { LocationFactsResponse } from '@/services/api';
+import { useSearchRadius } from '@/hooks/use-search-radius';
+import type { LocationFactsResponse, NearbyArticle } from '@/services/api';
+import { matchesCategory } from '@/utils/category-match';
+import { distanceMeters } from '@/utils/distance';
+import { openExternalUrl } from '@/utils/open-external';
+
+const MOVED_THRESHOLD_METERS = 400;
 
 interface Props {
   coords: Coords | null;
@@ -38,22 +45,32 @@ export function LocationExplorer({
   onSelectCategory,
 }: Props) {
   const { mode } = useContentMode();
+  const { radiusMiles } = useSearchRadius();
   const { result: askResult, status: askStatus, error: askError, ask } = useAskQuestion();
   const { result: nearbyResult, status: nearbyStatus, error: nearbyError, fetchNearby } = useNearbyArticles();
-  const [browsingAll, setBrowsingAll] = useState(false);
+  const [filter, setFilter] = useState<CategoryId | 'all'>('all');
+  const lastFetchedCoordsRef = useRef<Coords | null>(null);
+  const lastRadiusRef = useRef<number | null>(null);
 
-  const handleSelect = useCallback(
-    (selection: CategorySelection) => {
-      if (selection === 'all') {
-        setBrowsingAll(true);
-        if (coords) fetchNearby(coords);
-        return;
-      }
-      setBrowsingAll(false);
-      onSelectCategory(selection);
-    },
-    [coords, fetchNearby, onSelectCategory]
-  );
+  useEffect(() => {
+    if (mode !== 'wiki' || !coords) return;
+    const prev = lastFetchedCoordsRef.current;
+    const movedEnough = !prev || distanceMeters(prev, coords) >= MOVED_THRESHOLD_METERS;
+    const radiusChanged = lastRadiusRef.current !== null && lastRadiusRef.current !== radiusMiles;
+    if (movedEnough || radiusChanged) {
+      lastFetchedCoordsRef.current = coords;
+      lastRadiusRef.current = radiusMiles;
+      fetchNearby(coords);
+    } else {
+      lastRadiusRef.current = radiusMiles;
+    }
+  }, [mode, coords, radiusMiles, fetchNearby]);
+
+  const filteredArticles = useMemo(() => {
+    const articles = nearbyResult?.articles ?? [];
+    if (filter === 'all') return articles;
+    return articles.filter((article) => matchesCategory(`${article.title} ${article.snippet}`, filter));
+  }, [nearbyResult, filter]);
 
   const handleAsk = useCallback(
     (question: string) => {
@@ -63,24 +80,37 @@ export function LocationExplorer({
     [coords, placeLabel, ask]
   );
 
+  const handleSurprise = useCallback(() => {
+    if (mode === 'wiki') {
+      const pool = filteredArticles.length > 0 ? filteredArticles : nearbyResult?.articles ?? [];
+      if (pool.length === 0) return;
+      const pick: NearbyArticle = pool[Math.floor(Math.random() * pool.length)];
+      openExternalUrl(pick.url);
+    } else {
+      onSelectCategory('general');
+    }
+  }, [mode, filteredArticles, nearbyResult, onSelectCategory]);
+
   return (
     <ThemedView style={styles.container}>
       <RadiusControl />
 
-      <ThemedText type="smallBold">What do you want to know about here?</ThemedText>
-      <CategoryGrid
-        selected={browsingAll ? 'all' : category}
-        disabled={!coords}
-        includeAllNearby={mode === 'wiki'}
-        onSelect={handleSelect}
-      />
+      <ThemedView style={styles.filterRow}>
+        <CategoryChips
+          categories={mode === 'wiki' ? [ALL_CATEGORY, ...CATEGORIES] : CATEGORIES}
+          selected={mode === 'wiki' ? filter : category}
+          disabled={!coords}
+          onSelect={(id) => (mode === 'wiki' ? setFilter(id as CategoryId | 'all') : onSelectCategory(id as CategoryId))}
+        />
+        <SurpriseButton disabled={!coords} onPress={handleSurprise} />
+      </ThemedView>
 
-      {browsingAll ? (
+      {mode === 'wiki' ? (
         <>
           {nearbyStatus === 'loading' && (
             <ThemedView style={styles.notice}>
               <ActivityIndicator />
-              <ThemedText themeColor="textSecondary">Finding nearby articles…</ThemedText>
+              <ThemedText themeColor="textSecondary">Finding what's nearby…</ThemedText>
             </ThemedView>
           )}
           {nearbyStatus === 'error' && (
@@ -88,7 +118,9 @@ export function LocationExplorer({
               <ThemedText>Couldn't load nearby articles: {nearbyError}</ThemedText>
             </ThemedView>
           )}
-          {nearbyStatus === 'success' && nearbyResult && <NearbyArticlesList result={nearbyResult} />}
+          {nearbyStatus === 'success' && nearbyResult && (
+            <NearbyArticlesList result={{ ...nearbyResult, articles: filteredArticles }} />
+          )}
         </>
       ) : (
         <>
@@ -128,6 +160,9 @@ export function LocationExplorer({
 const styles = StyleSheet.create({
   container: {
     gap: Spacing.three,
+  },
+  filterRow: {
+    gap: Spacing.two,
   },
   notice: {
     padding: Spacing.three,

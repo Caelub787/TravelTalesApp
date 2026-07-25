@@ -1,7 +1,6 @@
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { router } from 'expo-router';
 
 import { AnswerCard } from '@/components/answer-card';
 import { StoryCard } from '@/components/story-card';
@@ -9,26 +8,28 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useSavedItems } from '@/hooks/use-saved-items';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function SavedScreen() {
   const { items } = useSavedItems();
+  const theme = useTheme();
   const sorted = [...items].sort((a, b) => b.savedAt - a.savedAt);
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content}>
-          <ThemedView style={styles.header}>
-            <Pressable onPress={() => router.back()}>
-              <ThemedText type="linkPrimary">‹ Back</ThemedText>
-            </Pressable>
-            <ThemedText type="subtitle">Saved</ThemedText>
-          </ThemedView>
+          <ThemedText type="title" style={styles.title}>
+            Saved
+          </ThemedText>
 
           {sorted.length === 0 && (
-            <ThemedText themeColor="textSecondary">
-              Nothing saved yet — tap 🔖 Save on any story or answer to keep it here.
-            </ThemedText>
+            <ThemedView style={styles.emptyState}>
+              <Ionicons name="bookmark-outline" size={32} color={theme.textSecondary} />
+              <ThemedText themeColor="textSecondary">
+                Nothing saved yet — tap Save on any story or answer to keep it here.
+              </ThemedText>
+            </ThemedView>
           )}
 
           {sorted.map((item) =>
@@ -58,9 +59,13 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.three,
   },
-  header: {
-    flexDirection: 'row',
+  title: {
+    fontSize: 28,
+    lineHeight: 34,
+  },
+  emptyState: {
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: Spacing.two,
+    paddingVertical: Spacing.six,
   },
 });

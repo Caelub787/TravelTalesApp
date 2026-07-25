@@ -62,19 +62,46 @@ export interface NearbyArticlesResponse {
   articles: NearbyArticle[];
 }
 
-async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
+export interface ReverseGeocodeRequest {
+  latitude: number;
+  longitude: number;
+}
+
+export interface ReverseGeocodeResponse {
+  label: string | null;
+}
+
+function requireApiUrl(): string {
   if (!API_URL) {
     throw new Error(
       'EXPO_PUBLIC_API_URL is not set. Point it at your running TravelTales server (see README).'
     );
   }
+  return API_URL;
+}
 
-  const response = await fetch(`${API_URL}${path}`, {
+async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
+  const response = await fetch(`${requireApiUrl()}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 
+  if (!response.ok) {
+    const responseBody = await response.json().catch(() => null);
+    throw new Error(responseBody?.error ?? `Request failed with status ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function getJson<TResponse>(path: string, params: Record<string, string>): Promise<TResponse> {
+  const url = new URL(`${requireApiUrl()}${path}`);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+
+  const response = await fetch(url);
   if (!response.ok) {
     const responseBody = await response.json().catch(() => null);
     throw new Error(responseBody?.error ?? `Request failed with status ${response.status}`);
@@ -101,4 +128,11 @@ export function searchWiki(req: AskRequest): Promise<AskResponse> {
 
 export function fetchNearbyArticles(req: NearbyArticlesRequest): Promise<NearbyArticlesResponse> {
   return postJson<NearbyArticlesResponse>('/api/wiki-nearby', req);
+}
+
+export function reverseGeocodeApi(req: ReverseGeocodeRequest): Promise<ReverseGeocodeResponse> {
+  return getJson<ReverseGeocodeResponse>('/api/reverse-geocode', {
+    latitude: String(req.latitude),
+    longitude: String(req.longitude),
+  });
 }

@@ -8,5 +8,12 @@ interface Props {
 export function SpeakButton({ text }: Props) {
   const { speaking, toggle } = useSpeakable();
 
-  return <ChipButton label={speaking ? '⏹ Stop' : '🔊 Read aloud'} active={speaking} onPress={() => toggle(text)} />;
+  return (
+    <ChipButton
+      label={speaking ? 'Stop' : 'Read aloud'}
+      icon={speaking ? 'stop-circle' : 'volume-high-outline'}
+      active={speaking}
+      onPress={() => toggle(text)}
+    />
+  );
 }

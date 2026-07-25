@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -18,15 +19,15 @@ export function RadiusControl() {
 
   return (
     <ThemedView style={styles.row}>
-      <ThemedText type="small" themeColor="textSecondary">
-        Search radius
-      </ThemedText>
+      <ThemedView style={styles.label}>
+        <Ionicons name="radio-outline" size={14} color={theme.textSecondary} />
+        <ThemedText type="small" themeColor="textSecondary">
+          Search radius
+        </ThemedText>
+      </ThemedView>
       <ThemedView style={styles.stepper}>
-        <Pressable
-          onPress={() => step(-1)}
-          disabled={index <= 0}
-          style={[styles.stepButton, { backgroundColor: theme.backgroundElement, opacity: index <= 0 ? 0.4 : 1 }]}>
-          <ThemedText type="smallBold">−</ThemedText>
+        <Pressable onPress={() => step(-1)} disabled={index <= 0} style={{ opacity: index <= 0 ? 0.4 : 1 }}>
+          <Ionicons name="remove-circle-outline" size={22} color={theme.accent} />
         </Pressable>
         <ThemedText type="smallBold" style={styles.value} themeColor="accent">
           {radiusMiles} mi
@@ -34,11 +35,8 @@ export function RadiusControl() {
         <Pressable
           onPress={() => step(1)}
           disabled={index >= RADIUS_OPTIONS_MILES.length - 1}
-          style={[
-            styles.stepButton,
-            { backgroundColor: theme.backgroundElement, opacity: index >= RADIUS_OPTIONS_MILES.length - 1 ? 0.4 : 1 },
-          ]}>
-          <ThemedText type="smallBold">+</ThemedText>
+          style={{ opacity: index >= RADIUS_OPTIONS_MILES.length - 1 ? 0.4 : 1 }}>
+          <Ionicons name="add-circle-outline" size={22} color={theme.accent} />
         </Pressable>
       </ThemedView>
     </ThemedView>
@@ -51,20 +49,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  label: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+  },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
   },
-  stepButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Spacing.two,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   value: {
-    minWidth: 48,
+    minWidth: 44,
     textAlign: 'center',
   },
 });

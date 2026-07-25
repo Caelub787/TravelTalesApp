@@ -69,3 +69,12 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+// Subtle elevation for cards — pair with a themed `borderColor`/`shadowColor` at the
+// call site. Kept soft so it reads as "native app" rather than a heavy drop-shadow.
+export const CardShadow = {
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.06,
+  shadowRadius: 8,
+  elevation: 2,
+} as const;

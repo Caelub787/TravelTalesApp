@@ -2,7 +2,7 @@ import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 
 import { distanceMeters } from '@/utils/distance';
-import { formatPlaceLabel } from '@/utils/geocode';
+import { reverseGeocode } from '@/utils/geocode';
 
 const REVERSE_GEOCODE_MIN_DISTANCE_METERS = 150;
 
@@ -58,10 +58,10 @@ export function useLiveLocation(): LiveLocationState {
 
           if (shouldReverseGeocode) {
             lastGeocodedCoords.current = next;
-            Location.reverseGeocodeAsync(next)
-              .then((results) => {
-                if (cancelled || results.length === 0) return;
-                setPlaceLabel(formatPlaceLabel(results[0]));
+            reverseGeocode(next)
+              .then((label) => {
+                if (cancelled || !label) return;
+                setPlaceLabel(label);
               })
               .catch(() => {
                 // Non-fatal: place label is a convenience, coords remain usable.

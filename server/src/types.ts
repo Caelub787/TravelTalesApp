@@ -66,3 +66,12 @@ export interface AskResponse {
   sources: FactSource[];
   noVerifiedAnswerFound: boolean;
 }
+
+export interface ReverseGeocodeRequest {
+  latitude: number;
+  longitude: number;
+}
+
+export interface ReverseGeocodeResponse {
+  label: string | null;
+}

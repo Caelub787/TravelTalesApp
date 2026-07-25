@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput } from 'react-native';
 
@@ -23,16 +24,20 @@ export function AskBox({ disabled, onSubmit }: Props) {
     onSubmit(trimmed);
   };
 
+  const canSend = !disabled && question.trim().length > 0;
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="smallBold">Ask about this spot</ThemedText>
-      <ThemedView style={styles.row}>
+      <ThemedView
+        style={[styles.pill, { backgroundColor: theme.backgroundElement, borderColor: theme.border, shadowColor: theme.text }]}>
+        <Ionicons name="search-outline" size={18} color={theme.textSecondary} style={styles.leadingIcon} />
         <TextInput
           value={question}
           onChangeText={setQuestion}
           placeholder="e.g. Why is this street named that?"
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+          style={[styles.input, { color: theme.text }]}
           editable={!disabled}
           onSubmitEditing={handleSubmit}
           returnKeyType="send"
@@ -40,24 +45,18 @@ export function AskBox({ disabled, onSubmit }: Props) {
         <Pressable
           onPress={listening ? stop : start}
           disabled={disabled}
-          style={[
-            styles.iconButton,
-            { backgroundColor: listening ? theme.accent : theme.backgroundElement, borderColor: theme.border },
-          ]}>
-          <ThemedText>{listening ? '⏺' : '🎤'}</ThemedText>
+          style={[styles.iconButton, { backgroundColor: listening ? theme.accent : 'transparent' }]}>
+          <Ionicons
+            name={listening ? 'stop-circle' : 'mic-outline'}
+            size={20}
+            color={listening ? theme.accentContrast : theme.textSecondary}
+          />
         </Pressable>
         <Pressable
           onPress={handleSubmit}
-          disabled={disabled || question.trim().length === 0}
-          style={[
-            styles.iconButton,
-            {
-              backgroundColor: theme.accent,
-              borderColor: theme.border,
-              opacity: disabled || question.trim().length === 0 ? 0.4 : 1,
-            },
-          ]}>
-          <ThemedText themeColor="accentContrast">➤</ThemedText>
+          disabled={!canSend}
+          style={[styles.sendButton, { backgroundColor: theme.accent, opacity: canSend ? 1 : 0.4 }]}>
+          <Ionicons name="arrow-up" size={18} color={theme.accentContrast} />
         </Pressable>
       </ThemedView>
       {listening && (
@@ -76,26 +75,41 @@ export function AskBox({ disabled, onSubmit }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.one,
+    gap: Spacing.two,
   },
-  row: {
+  pill: {
     flexDirection: 'row',
-    gap: Spacing.one,
     alignItems: 'center',
+    borderRadius: Spacing.five,
+    borderWidth: 1,
+    paddingLeft: Spacing.three,
+    paddingRight: Spacing.one,
+    paddingVertical: Spacing.one,
+    gap: Spacing.one,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  leadingIcon: {
+    marginRight: Spacing.half,
   },
   input: {
     flex: 1,
-    borderRadius: Spacing.three,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
     fontSize: 16,
+    paddingVertical: Spacing.two,
   },
   iconButton: {
-    borderRadius: Spacing.three,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.two,
+    width: 36,
+    height: 36,
+    borderRadius: Spacing.five,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Spacing.five,
     alignItems: 'center',
     justifyContent: 'center',
   },

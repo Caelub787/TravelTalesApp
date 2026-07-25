@@ -1,17 +1,19 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useCallback } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LocationExplorer } from '@/components/location-explorer';
 import { LocationHeader } from '@/components/location-header';
-import { NavChip } from '@/components/nav-chip';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useLiveLocation } from '@/hooks/use-live-location';
 import { useLocationFacts } from '@/hooks/use-location-facts';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function HomeScreen() {
+  const theme = useTheme();
   const { permission, coords, placeLabel, error: locationError } = useLiveLocation();
   const { category, result, status, error: factsError, load, hasMovedSinceLastFetch } = useLocationFacts();
 
@@ -33,14 +35,10 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content}>
           <ThemedView style={styles.header}>
+            <Ionicons name="compass" size={26} color={theme.accent} />
             <ThemedText type="title" style={styles.appTitle}>
               TravelTales
             </ThemedText>
-            <ThemedView style={styles.headerLinks}>
-              <NavChip href="/map" label="🗺️ Map" />
-              <NavChip href="/saved" label="🔖 Saved" />
-              <NavChip href="/settings" label="⚙️ Settings" />
-            </ThemedView>
           </ThemedView>
 
           {permission === 'denied' && (
@@ -107,12 +105,9 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   header: {
-    gap: Spacing.two,
-  },
-  headerLinks: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.three,
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   appTitle: {
     fontSize: 28,
