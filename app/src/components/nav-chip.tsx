@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet } from 'react-native';
 
-import { Link, type Href } from 'expo-router';
+import { router, type Href } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -15,11 +15,11 @@ export function NavChip({ href, label }: Props) {
   const theme = useTheme();
 
   return (
-    <Link href={href} asChild>
-      <Pressable style={[styles.chip, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-        <ThemedText type="smallBold">{label}</ThemedText>
-      </Pressable>
-    </Link>
+    <Pressable
+      onPress={() => router.push(href)}
+      style={[styles.chip, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+      <ThemedText type="smallBold">{label}</ThemedText>
+    </Pressable>
   );
 }
 
