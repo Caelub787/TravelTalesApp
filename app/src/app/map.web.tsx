@@ -1,6 +1,9 @@
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
+import L, { type Map as LeafletMap } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet';
 
 import { router } from 'expo-router';
 
@@ -8,37 +11,49 @@ import { LocationExplorer } from '@/components/location-explorer';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { useLiveLocation, type Coords } from '@/hooks/use-live-location';
 import { useLocationFacts } from '@/hooks/use-location-facts';
 import { reverseGeocode } from '@/utils/geocode';
 
-// react-native-maps has no interactive web implementation, so the web build uses manual
-// coordinate entry instead of a tap-to-pin map.
+// Leaflet's default marker icons resolve to broken paths under most bundlers (Metro
+// included) — point them at Leaflet's own CDN-hosted images instead.
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+const FALLBACK_CENTER: [number, number] = [40, -100];
+const FALLBACK_ZOOM = 4;
+const LOCATED_ZOOM = 14;
+
+function ClickHandler({ onPick }: { onPick: (coords: Coords) => void }) {
+  useMapEvents({
+    click(event) {
+      onPick({ latitude: event.latlng.lat, longitude: event.latlng.lng });
+    },
+  });
+  return null;
+}
+
 export default function MapScreenWeb() {
   const { coords } = useLiveLocation();
-  const [latInput, setLatInput] = useState('');
-  const [lonInput, setLonInput] = useState('');
   const [pin, setPin] = useState<Coords | null>(null);
   const [pinLabel, setPinLabel] = useState<string | null>(null);
   const [geocoding, setGeocoding] = useState(false);
-  const theme = useTheme();
   const { category, result, status, error: factsError, load } = useLocationFacts();
+  const mapRef = useRef<LeafletMap | null>(null);
+  const hasCenteredOnLocation = useRef(false);
 
-  const handleUseCurrentLocation = useCallback(() => {
-    if (!coords) return;
-    setLatInput(String(coords.latitude));
-    setLonInput(String(coords.longitude));
-    setPin(coords);
-    setPinLabel(null);
+  useEffect(() => {
+    if (coords && mapRef.current && !hasCenteredOnLocation.current) {
+      hasCenteredOnLocation.current = true;
+      mapRef.current.setView([coords.latitude, coords.longitude], LOCATED_ZOOM);
+    }
   }, [coords]);
 
-  const handleSetPin = useCallback(() => {
-    const latitude = Number(latInput);
-    const longitude = Number(lonInput);
-    if (Number.isNaN(latitude) || Number.isNaN(longitude)) return;
-
-    const nextPin = { latitude, longitude };
+  const handlePick = useCallback((nextPin: Coords) => {
     setPin(nextPin);
     setPinLabel(null);
     setGeocoding(true);
@@ -46,7 +61,13 @@ export default function MapScreenWeb() {
       .then(setPinLabel)
       .catch(() => setPinLabel(null))
       .finally(() => setGeocoding(false));
-  }, [latInput, lonInput]);
+  }, []);
+
+  const handleCenterOnMe = useCallback(() => {
+    if (coords && mapRef.current) {
+      mapRef.current.setView([coords.latitude, coords.longitude], LOCATED_ZOOM);
+    }
+  }, [coords]);
 
   const handleSelectCategory = useCallback(
     (nextCategory: Parameters<typeof load>[0]) => {
@@ -59,46 +80,50 @@ export default function MapScreenWeb() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <ThemedView style={styles.header}>
-            <Pressable onPress={() => router.back()}>
-              <ThemedText type="linkPrimary">‹ Back</ThemedText>
+        <ThemedView style={styles.header}>
+          <Pressable onPress={() => router.back()}>
+            <ThemedText type="linkPrimary">‹ Back</ThemedText>
+          </Pressable>
+          <ThemedText type="subtitle">Pick a spot</ThemedText>
+          {coords ? (
+            <Pressable onPress={handleCenterOnMe}>
+              <ThemedText type="linkPrimary">📍 Me</ThemedText>
             </Pressable>
-            <ThemedText type="subtitle">Pick a spot</ThemedText>
-          </ThemedView>
-
-          <ThemedText themeColor="textSecondary">
-            The interactive map isn't available in the browser — enter coordinates directly, or
-            use your current location.
-          </ThemedText>
-
-          {coords && (
-            <Pressable onPress={handleUseCurrentLocation}>
-              <ThemedText type="linkPrimary">📍 Use my current location</ThemedText>
-            </Pressable>
+          ) : (
+            <ThemedView style={styles.headerSpacer} />
           )}
+        </ThemedView>
 
-          <ThemedView style={styles.row}>
-            <TextInput
-              value={latInput}
-              onChangeText={setLatInput}
-              placeholder="Latitude"
-              placeholderTextColor={theme.textSecondary}
-              keyboardType="numbers-and-punctuation"
-              style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundElement }]}
+        <ThemedView style={styles.mapWrapper}>
+          <MapContainer
+            ref={mapRef}
+            center={coords ? [coords.latitude, coords.longitude] : FALLBACK_CENTER}
+            zoom={coords ? LOCATED_ZOOM : FALLBACK_ZOOM}
+            style={{ height: '100%', width: '100%' }}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <TextInput
-              value={lonInput}
-              onChangeText={setLonInput}
-              placeholder="Longitude"
-              placeholderTextColor={theme.textSecondary}
-              keyboardType="numbers-and-punctuation"
-              style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundElement }]}
-            />
-            <Pressable onPress={handleSetPin} style={[styles.setButton, { backgroundColor: theme.backgroundElement }]}>
-              <ThemedText type="smallBold">Set</ThemedText>
-            </Pressable>
-          </ThemedView>
+            <ClickHandler onPick={handlePick} />
+            {coords && (
+              <Marker position={[coords.latitude, coords.longitude]}>
+                <Popup>You are here</Popup>
+              </Marker>
+            )}
+            {pin && (
+              <Marker position={[pin.latitude, pin.longitude]}>
+                <Popup>Selected spot</Popup>
+              </Marker>
+            )}
+          </MapContainer>
+        </ThemedView>
+
+        <ScrollView contentContainerStyle={styles.content}>
+          {!pin && (
+            <ThemedText themeColor="textSecondary">
+              Click anywhere on the map to pick a location, then ask about it below.
+            </ThemedText>
+          )}
 
           {pin && (
             <>
@@ -140,31 +165,23 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: MaxContentWidth,
   },
-  content: {
-    padding: Spacing.four,
-    gap: Spacing.two,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
   },
-  row: {
-    flexDirection: 'row',
+  headerSpacer: {
+    width: 48,
+  },
+  mapWrapper: {
+    width: '100%',
+    height: 320,
+  },
+  content: {
+    padding: Spacing.four,
     gap: Spacing.two,
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    borderRadius: Spacing.three,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    fontSize: 16,
-  },
-  setButton: {
-    borderRadius: Spacing.three,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
   },
   geocodingSpinner: {
     alignSelf: 'flex-start',

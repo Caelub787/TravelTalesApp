@@ -28,11 +28,10 @@ Two content sources, switchable anytime in-app under **⚙️ Settings**:
 - **`server/`** — a small Express backend. Nothing sensitive ever ships to the client: the
   Gemini key lives only here.
 
-**Also included**: a map screen for dropping a pin anywhere to get stories about that spot
-instead of just your current location (native: tap-to-pin on a real map; web: manual
-coordinate entry, since the map library has no interactive web support), a free-form "ask
-a question" box with voice input, and a "read aloud" button on every response. No saved
-history or accounts yet.
+**Also included**: an interactive map (web only — see below) for clicking anywhere to get
+stories about that spot instead of just your current location, a free-form "ask a
+question" box with voice input, a "read aloud" button on every response, and the ability
+to save/favorite stories and answers for later (on-device, under 🔖 Saved). No accounts.
 
 ## Prerequisites
 
@@ -98,20 +97,16 @@ pieces need to be deployed somewhere with a public URL:
   [Vercel](https://vercel.com) via `vercel --prod` run from inside `app/dist`.
 - **Native app**: see the EAS sections below.
 
-## Map screen and Google Maps API key (native only)
+## Map screen (web only)
 
-The native map screen (`app/src/app/map.tsx`) uses `react-native-maps`, which requires a
-free Google Maps API key on Android:
+The map (`app/src/app/map.web.tsx`) is built with [Leaflet](https://leafletjs.com) —
+free, open-source, no API key required, using OpenStreetMap tiles. Click anywhere to drop
+a pin and get facts/stories or ask questions about that spot.
 
-1. In the [Google Cloud Console](https://console.cloud.google.com/), create/select a
-   project and enable **"Maps SDK for Android"**.
-2. Create an API key (APIs & Services → Credentials → Create Credentials → API key).
-3. Put it in `app/app.json` under `expo.android.config.googleMaps.apiKey`.
-4. Rebuild the native app (native config changes require a full `eas build`, not an OTA
-   update).
-
-The web build (`app/src/app/map.web.tsx`) doesn't need this — it uses manual coordinate
-entry instead, since `react-native-maps` has no interactive web implementation.
+It's web-only: Leaflet needs a browser DOM, which native apps don't have. On native
+builds, `app/src/app/map.tsx` shows a simple message pointing to the website instead —
+everything else (categories, questions, voice, read aloud, saved items) works the same on
+both.
 
 ## Voice input and text-to-speech
 

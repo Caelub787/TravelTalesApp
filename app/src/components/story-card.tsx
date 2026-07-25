@@ -1,10 +1,12 @@
 import { StyleSheet } from 'react-native';
 
 import { ExternalLink } from '@/components/external-link';
+import { SaveButton } from '@/components/save-button';
 import { SpeakButton } from '@/components/speak-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { factsSaveId } from '@/hooks/use-saved-items';
 import type { LocationFactsResponse } from '@/services/api';
 
 interface Props {
@@ -32,7 +34,10 @@ export function StoryCard({ result }: Props) {
       </ThemedText>
       <ThemedText style={styles.summary}>{result.summary}</ThemedText>
 
-      <SpeakButton text={`${result.title}. ${result.summary}`} />
+      <ThemedView style={styles.actionRow}>
+        <SpeakButton text={`${result.title}. ${result.summary}`} />
+        <SaveButton id={factsSaveId(result)} item={{ id: factsSaveId(result), kind: 'facts', data: result }} />
+      </ThemedView>
 
       <ThemedView style={styles.factList}>
         {result.facts.map((fact, index) => (
@@ -58,6 +63,10 @@ const styles = StyleSheet.create({
   },
   summary: {
     marginTop: Spacing.one,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: Spacing.three,
   },
   factList: {
     marginTop: Spacing.two,

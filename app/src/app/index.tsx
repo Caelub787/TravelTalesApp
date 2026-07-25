@@ -41,6 +41,9 @@ export default function HomeScreen() {
               <Link href="/map" asChild>
                 <ThemedText type="linkPrimary">🗺️ Map</ThemedText>
               </Link>
+              <Link href="/saved" asChild>
+                <ThemedText type="linkPrimary">🔖 Saved</ThemedText>
+              </Link>
               <Link href="/settings" asChild>
                 <ThemedText type="linkPrimary">⚙️ Settings</ThemedText>
               </Link>
