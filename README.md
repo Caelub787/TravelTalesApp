@@ -4,15 +4,17 @@ An app that watches your device's GPS in real time and surfaces real, verifiable
 culture, nature, architecture, folklore, and notable-people facts about wherever you
 currently are — picked by category, always cited so you can check the source yourself.
 
-Two content sources, switchable anytime in-app under **⚙️ Settings** — both powered by the
-**free tier of Google's Gemini API** (no billing, no OpenAI/paid key required anywhere):
+Two content sources, switchable anytime in-app under **⚙️ Settings** — both powered by
+**Groq's free tier** (no billing, no OpenAI/paid key required anywhere — Groq's free tier
+is dramatically more generous than Gemini's, which is why this app uses it):
 
 - **✨ Story Mode** — AI-written narratives that research each spot fresh (historical *and*
-  modern), grounded in live Google Search results.
+  modern), grounded in a combination of nearby Wikipedia articles and free, keyless
+  open-web search results (not just Wikipedia).
 - **📖 Wiki Facts** — browse nearby Wikipedia articles directly (always free, no rate
-  limits, no key needed just to browse). Asking a question here still calls Gemini to
-  write a real conversational answer from those articles, so it needs the same free key as
-  Story Mode to feel like AI search instead of a raw keyword match.
+  limits, no key needed just to browse). Asking a question here still calls the same free
+  AI to write a real conversational answer from those articles, so it needs the same free
+  key as Story Mode to feel like AI search instead of a raw keyword match.
 
 Tapping any article opens it *inside the app*, themed to match, with a "read aloud" button
 and a mini AI Q&A box scoped to just that article's text — never a new tab. Wikipedia
@@ -22,14 +24,14 @@ the original page and edit history (opened in-app too).
 ## How it works
 
 ```
-[App] --- POST /api/location-facts ---> [Node/Express server] ---> [Gemini API (free tier)]
-      --- POST /api/ask             --->                       --->  (Story Mode: search +
-      --- POST /api/wiki-facts      ---> (holds the Gemini key)      structured output)
-      --- POST /api/wiki-search     --->                       --->  [Wikipedia API]
-      --- POST /api/article-content --->                       --->  (Wiki mode search
-      --- POST /api/article-ask     --->                       --->   synthesis + per-
-      --- GET  /api/reverse-geocode --->                       --->   article Q&A, both
-                                                                       via Gemini)
+[App] --- POST /api/location-facts ---> [Node/Express server] ---> [Groq API (free tier)]
+      --- POST /api/ask             --->                       --->  (Story Mode + Wiki
+      --- POST /api/wiki-facts      ---> (holds the Groq key)        mode synthesis +
+      --- POST /api/wiki-search     --->                       --->  per-article Q&A)
+      --- POST /api/article-content --->                       --->  [Wikipedia API]
+      --- POST /api/article-ask     --->                       --->  [DuckDuckGo search]
+      --- GET  /api/reverse-geocode --->                       --->  (Story Mode grounding,
+                                                                       free, no key)
                                                                 --->  [Nominatim]
                                                                        (reverse geocoding,
                                                                         free, no key)
@@ -39,7 +41,7 @@ the original page and edit history (opened in-app too).
   *or* as a regular website (`react-native-web`) — same codebase, same features, minus
   background tracking on web (browsers don't allow that, see below).
 - **`server/`** — a small Express backend. Nothing sensitive ever ships to the client: the
-  Gemini key lives only here.
+  Groq key lives only here.
 
 **Also included**: an interactive map (web only — see below) for clicking anywhere to get
 stories about that spot instead of just your current location, a free-form "ask anything"
@@ -52,9 +54,9 @@ you've opened, and the ability to save/favorite stories and answers for later �
 ## Prerequisites
 
 - Node.js 20+
-- A free [Gemini API key](https://aistudio.google.com/apikey) — powers Story Mode, Wiki
-  mode's AI search/Q&A, and per-article Q&A. Without it, Wiki mode's nearby-articles
-  browsing still works, just without the AI layer on top.
+- A free [Groq API key](https://console.groq.com/keys) (no credit card) — powers Story
+  Mode, Wiki mode's AI search/Q&A, and per-article Q&A. Without it, Wiki mode's
+  nearby-articles browsing still works, just without the AI layer on top.
 - [Expo Go](https://expo.dev/go) on your phone for native testing, or just a browser for
   the web build
 - Your phone and computer on the same Wi-Fi network (for local native dev only)
@@ -64,7 +66,7 @@ you've opened, and the ability to save/favorite stories and answers for later �
 ```bash
 cd server
 cp .env.example .env
-# edit .env and set GEMINI_API_KEY=... (skip this if you'll only use Wiki Facts mode)
+# edit .env and set GROQ_API_KEY=... (skip this if you'll only use Wiki Facts mode)
 npm install
 npm run dev
 ```
@@ -106,7 +108,7 @@ the same network. To actually use this day-to-day (e.g. sharing with a friend), 
 pieces need to be deployed somewhere with a public URL:
 
 - **Backend** (`server/`): any Node host works — e.g. [Railway](https://railway.app) via
-  `railway up` from inside `server/`, with `GEMINI_API_KEY` set as an environment variable
+  `railway up` from inside `server/`, with `GROQ_API_KEY` set as an environment variable
   there.
 - **Frontend web build**: export a static build (`npx expo export -p web` from `app/`,
   after setting `EXPO_PUBLIC_API_URL` to your deployed backend's URL — this is baked in at
@@ -160,18 +162,20 @@ distribution (TestFlight for iOS, in particular).
 
 ## Notes on "verified facts"
 
-**Story Mode**: every fact is required (via prompt instructions and forced structured
-output) to carry a real source title and URL found through Gemini's Google Search
-grounding during that request. This significantly reduces hallucination compared to
-recalling facts from memory, but it's not a formal fact-checking pipeline — the UI shows
-sources so you can verify anything that matters to you.
+**Story Mode**: the backend first fetches real grounding text — nearby Wikipedia article
+extracts plus free, keyless open-web search results for the location and topic — then
+gives the AI *only* that text and requires (via prompt instructions and response
+validation) that every fact carry a source title/URL copied directly from it, never
+invented. This significantly reduces hallucination compared to letting the model answer
+from its own memory, but it's not a formal fact-checking pipeline — the UI shows sources
+so you can verify anything that matters to you.
 
 **Wiki Facts mode**: the nearby-articles list is pulled directly from live Wikipedia
 article text, not AI-generated at all — the "hallucination" risk here is whatever's
 already in the relevant Wikipedia articles, same as reading Wikipedia directly. Asking a
-question, or asking about a specific article, hands that same Wikipedia text to Gemini and
+question, or asking about a specific article, hands that same Wikipedia text to the AI and
 asks it to answer *using only that text* — so it's synthesized, but still grounded in real
-excerpts rather than the model's own memory. If Gemini fails or isn't configured, Wiki
+excerpts rather than the model's own memory. If the AI call fails or isn't configured, Wiki
 mode's search falls back to the raw excerpts rather than breaking.
 
 If no verifiable facts are found near a location in either mode, the app says so rather
@@ -179,9 +183,9 @@ than inventing content.
 
 ## Cost note
 
-Story Mode, Wiki mode's search/Q&A, and per-article Q&A all use Gemini's free tier, which
-has rate limits — for a couple of personal users this should never be an issue, but very
-heavy use could hit them. Browsing nearby Wikipedia articles has no meaningful usage limit
-for personal use and needs no key at all. The app deliberately does not auto-fetch on every
-GPS update in either mode — it only refreshes after you've moved ~400m — to keep usage low
-regardless.
+Story Mode, Wiki mode's search/Q&A, and per-article Q&A all use Groq's free tier, which is
+generous but still rate-limited — for personal use this should essentially never be an
+issue. If you do hit a limit, the app shows that clearly (rather than a raw error) and
+suggests switching to Wiki Facts mode's plain browsing, which has no meaningful usage limit
+and needs no key at all. The app deliberately does not auto-fetch on every GPS update in
+either mode — it only refreshes after you've moved ~400m — to keep usage low regardless.

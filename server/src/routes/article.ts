@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { answerArticleQuestion } from "../services/geminiClient.js";
+import { answerArticleQuestion } from "../services/groqClient.js";
 import { fetchArticleContent } from "../services/wikipedia.js";
-import { errorMessage } from "../utils/errorMessage.js";
+import { describeAiError, errorMessage } from "../utils/errorMessage.js";
 
 export const articleRouter = Router();
 
@@ -40,6 +40,6 @@ articleRouter.post("/article-ask", async (req, res) => {
     res.json({ question: question.trim(), answer });
   } catch (err) {
     console.error("Failed to answer article question:", err);
-    res.status(502).json({ error: errorMessage(err, "Failed to get an answer from Gemini") });
+    res.status(502).json({ error: describeAiError(err, "Failed to get an AI answer") });
   }
 });

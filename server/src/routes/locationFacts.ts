@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { fetchLocationFacts } from "../services/geminiClient.js";
+import { fetchLocationFacts } from "../services/groqClient.js";
 import type { CategoryId, LocationFactsRequest } from "../types.js";
-import { errorMessage } from "../utils/errorMessage.js";
+import { describeAiError } from "../utils/errorMessage.js";
 
 const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "architecture", "legends", "people", "general"];
 
@@ -37,6 +37,6 @@ locationFactsRouter.post("/location-facts", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Failed to fetch location facts:", err);
-    res.status(502).json({ error: errorMessage(err, "Failed to fetch location facts from Gemini") });
+    res.status(502).json({ error: describeAiError(err, "Failed to fetch location facts from the AI") });
   }
 });

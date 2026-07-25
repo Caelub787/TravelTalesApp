@@ -1,4 +1,4 @@
-import { synthesizeWikiSearchAnswer } from "./geminiClient.js";
+import { synthesizeWikiSearchAnswer } from "./groqClient.js";
 import type {
   ArticleContentResponse,
   AskRequest,
@@ -153,18 +153,20 @@ async function geosearchArea(latitude: number, longitude: number, radiusMiles: n
   return Array.from(byId.values()).sort((a, b) => a.distanceMeters - b.distanceMeters);
 }
 
-async function fetchExtracts(pageIds: number[]): Promise<ExtractResult[]> {
+async function fetchExtracts(pageIds: number[], options?: { fullIntro?: boolean }): Promise<ExtractResult[]> {
   if (pageIds.length === 0) return [];
 
-  const data = await wikiFetch<{ query?: { pages?: Record<string, ExtractResult> } }>({
+  const params: Record<string, string> = {
     action: "query",
     prop: "extracts|info",
     exintro: "1",
     explaintext: "1",
-    exsentences: "3",
     inprop: "url",
     pageids: pageIds.join("|"),
-  });
+  };
+  if (!options?.fullIntro) params.exsentences = "3";
+
+  const data = await wikiFetch<{ query?: { pages?: Record<string, ExtractResult> } }>(params);
   return Object.values(data.query?.pages ?? {});
 }
 
@@ -303,12 +305,12 @@ export async function searchWikiAnswer(req: AskRequest): Promise<AskResponse> {
 
   // Prefer a synthesized, conversational answer (still grounded only in these excerpts)
   // over a raw snippet dump — but Wiki mode is meant to keep working even without a
-  // Gemini key configured, so fall back to the snippets themselves if synthesis fails.
+  // Groq key configured, so fall back to the snippets themselves if synthesis fails.
   let answer: string;
   try {
     answer = (await synthesizeWikiSearchAnswer({ question, excerpts })).answer;
   } catch (err) {
-    console.error("Gemini synthesis failed, falling back to raw Wikipedia snippets:", err);
+    console.error("AI synthesis failed, falling back to raw Wikipedia snippets:", err);
     answer = `Here's what nearby Wikipedia articles say:\n\n${excerpts
       .map((e) => `${e.title}: ${e.text}`)
       .join("\n\n")}`;
@@ -340,4 +342,36 @@ export async function fetchArticleContent(title: string): Promise<ArticleContent
   }
 
   return { title: page.title, extract: page.extract.trim(), url: page.fullurl };
+}
+
+export interface GroundingExcerpt {
+  title: string;
+  text: string;
+  url: string;
+}
+
+const MAX_GROUNDING_ARTICLES = 8;
+
+// Real, verifiable Wikipedia text for Story Mode's AI to write from — grounding it in
+// actual nearby articles instead of the model's own (unverifiable, possibly invented)
+// knowledge, and without needing any provider's built-in web-search tool.
+export async function fetchGroundingExcerpts(
+  latitude: number,
+  longitude: number,
+  radiusMiles: number | undefined
+): Promise<GroundingExcerpt[]> {
+  const nearby = (await geosearchArea(latitude, longitude, radiusMiles)).slice(0, MAX_GROUNDING_ARTICLES);
+  const extracts = await fetchExtracts(
+    nearby.map((page) => page.pageid),
+    { fullIntro: true }
+  );
+  const byId = new Map(extracts.map((page) => [page.pageid, page]));
+
+  const excerpts: GroundingExcerpt[] = [];
+  for (const page of nearby) {
+    const extract = byId.get(page.pageid);
+    if (!extract?.extract || !extract.fullurl) continue;
+    excerpts.push({ title: extract.title, text: extract.extract.trim(), url: extract.fullurl });
+  }
+  return excerpts;
 }

@@ -7,9 +7,9 @@ import { wikiRouter } from "./routes/wiki.js";
 import { geocodeRouter } from "./routes/geocode.js";
 import { articleRouter } from "./routes/article.js";
 
-if (!process.env.GEMINI_API_KEY) {
+if (!process.env.GROQ_API_KEY) {
   console.warn(
-    "Warning: GEMINI_API_KEY is not set. Story Mode, per-article AI Q&A, and Wiki mode's AI-synthesized search answers will fail until it is."
+    "Warning: GROQ_API_KEY is not set. Story Mode, per-article AI Q&A, and Wiki mode's AI-synthesized search answers will fail until it is."
   );
 }
 

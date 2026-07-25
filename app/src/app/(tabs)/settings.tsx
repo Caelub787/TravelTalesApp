@@ -22,14 +22,14 @@ const OPTIONS: ModeOption[] = [
     label: 'Story Mode',
     icon: 'sparkles',
     description:
-      "AI-written narratives that research each spot fresh — historical and modern — grounded in live web search with cited sources. Powered by Gemini's free tier, subject to its rate limits.",
+      "AI-written narratives that research each spot fresh — historical and modern — grounded in nearby Wikipedia articles and open-web search, with cited sources. Powered by Groq's free tier, subject to its rate limits.",
   },
   {
     id: 'wiki',
     label: 'Wiki Facts',
     icon: 'book',
     description:
-      "Browse nearby Wikipedia articles directly — always free, no rate limits. Asking a question here still uses Gemini's free tier to write a real answer from those articles, so it needs the same key as Story Mode to feel conversational.",
+      "Browse nearby Wikipedia articles directly — always free, no rate limits. Asking a question here still uses Groq's free tier to write a real answer from those articles, so it needs the same key as Story Mode to feel conversational.",
   },
 ];
 
