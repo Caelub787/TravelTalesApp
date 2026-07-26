@@ -81,6 +81,17 @@ const crashOverlayScript = `
 })();
 `;
 
+// Caches the app's own shell (HTML/JS/CSS) so the website can still boot with zero network
+// signal after at least one successful visit — see public/sw.js for the caching strategy.
+// Registered after 'load' so it never competes with the initial page's own network requests.
+const serviceWorkerScript = `
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+}
+`;
+
 export default function Root({ children }: PropsWithChildren) {
   return (
     <html lang="en">
@@ -88,11 +99,15 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="theme-color" content={Colors.light.accent} />
+        <link rel="manifest" href="/manifest.json" />
         <ScrollViewStyleReset />
         {/* eslint-disable-next-line react/no-danger */}
         <style dangerouslySetInnerHTML={{ __html: viewportFixStyle }} />
         {/* eslint-disable-next-line react/no-danger */}
         <script dangerouslySetInnerHTML={{ __html: crashOverlayScript }} />
+        {/* eslint-disable-next-line react/no-danger */}
+        <script dangerouslySetInnerHTML={{ __html: serviceWorkerScript }} />
       </head>
       <body>{children}</body>
     </html>

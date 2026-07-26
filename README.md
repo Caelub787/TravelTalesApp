@@ -161,6 +161,17 @@ locally by keyword against the downloaded articles' text, since AI synthesis als
 connection). Downloaded areas and trip stops both count as coverage for this fallback.
 Manage or delete downloaded areas under **🔖 Saved → Offline areas**.
 
+### The website itself booting with no signal
+
+Everything above assumes the site has already loaded — a plain static website still needs
+*some* connection to download its own HTML/JS the very first time. `public/sw.js` is a
+service worker that fixes that: after one successful visit, it caches the app's own shell
+(that build's HTML/JS/CSS, discovered dynamically since Expo renames them per build), so
+reopening the site later — even in a brand new tab, even navigating straight to a
+sub-page like `/trip` — works with zero network at all. It never touches API calls (those
+are a different origin and already handled by the fallback above); it only caches the
+app's own code so the tab can boot in the first place.
+
 ## Voice input and text-to-speech
 
 - **Ask a question** (text or 🎤 voice) on the home screen or after picking a location on
