@@ -2,6 +2,7 @@
   "expo": {
     "name": "TravelTalesApp",
     "slug": "traveltalesapp",
+    "owner": "calebmreed",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,6 +10,9 @@
     "userInterfaceStyle": "automatic",
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5a21cd88-024e-41cb-b1a5-3ef0b74c86de"
     },
     "ios": {
       "icon": "./assets/expo.icon",
@@ -64,6 +68,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5a21cd88-024e-41cb-b1a5-3ef0b74c86de"
+      }
     }
   }
 }
