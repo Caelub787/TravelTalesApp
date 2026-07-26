@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { reverseGeocode } from "../services/geocode.js";
+import { reverseGeocode, searchAddress } from "../services/geocode.js";
 import type { ReverseGeocodeRequest } from "../types.js";
 import { errorMessage } from "../utils/errorMessage.js";
 
@@ -22,5 +22,22 @@ geocodeRouter.get("/reverse-geocode", async (req, res) => {
   } catch (err) {
     console.error("Failed to reverse geocode:", err);
     res.status(502).json({ error: errorMessage(err, "Failed to reverse geocode") });
+  }
+});
+
+geocodeRouter.get("/address-search", async (req, res) => {
+  const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+
+  if (query.length < 3) {
+    res.status(400).json({ error: "q query param must be at least 3 characters" });
+    return;
+  }
+
+  try {
+    const result = await searchAddress(query);
+    res.json(result);
+  } catch (err) {
+    console.error("Failed to search address:", err);
+    res.status(502).json({ error: errorMessage(err, "Failed to search address") });
   }
 });

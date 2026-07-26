@@ -76,6 +76,16 @@ export interface ReverseGeocodeResponse {
   label: string | null;
 }
 
+export interface AddressSearchResult {
+  label: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface AddressSearchResponse {
+  results: AddressSearchResult[];
+}
+
 export interface ArticleContentRequest {
   title: string;
 }

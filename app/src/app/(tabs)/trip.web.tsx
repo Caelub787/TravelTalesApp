@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMapEvents } from 'react-leaflet';
 
 import { ActiveTripView } from '@/components/active-trip-view';
+import { AddressSearchInput } from '@/components/address-search-input';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { TripList } from '@/components/trip-list';
@@ -14,6 +15,7 @@ import type { Coords } from '@/hooks/use-live-location';
 import { useOfflineTrips, type Trip, type TripStop } from '@/hooks/use-offline-trips';
 import { useTheme } from '@/hooks/use-theme';
 import { useTripDownload } from '@/hooks/use-trip-download';
+import { reverseGeocodeApi, type AddressSearchResult } from '@/services/api';
 import { fetchRoute, type RouteResult } from '@/services/routing';
 import { fixLeafletDefaultIcon } from '@/utils/leaflet-icon-fix';
 import { sampleRoute } from '@/utils/route-sampling';
@@ -25,6 +27,18 @@ const FALLBACK_ZOOM = 4;
 // One stop roughly every 3 miles along the route — close enough that "everything in
 // between" the pins gets covered, without ballooning download time/storage for long trips.
 const SAMPLE_INTERVAL_METERS = 4828;
+
+interface WaypointEntry {
+  id: string;
+  label: string;
+  coords: Coords | null;
+}
+
+let entryIdCounter = 0;
+function makeEntry(label = ''): WaypointEntry {
+  entryIdCounter += 1;
+  return { id: `entry-${entryIdCounter}`, label, coords: null };
+}
 
 function ClickHandler({ onPick }: { onPick: (coords: Coords) => void }) {
   useMapEvents({
@@ -45,7 +59,8 @@ export default function TripScreenWeb() {
   const activeTrip = trips.find((trip) => trip.id === activeTripId) ?? null;
 
   const [mode, setMode] = useState<'list' | 'planning'>('list');
-  const [waypoints, setWaypoints] = useState<Coords[]>([]);
+  const [entries, setEntries] = useState<WaypointEntry[]>([makeEntry(), makeEntry()]);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [routeError, setRouteError] = useState<string | null>(null);
@@ -53,8 +68,13 @@ export default function TripScreenWeb() {
   const [tripName, setTripName] = useState('');
   const { status: downloadStatus, progress, error: downloadError, download } = useTripDownload();
 
+  const waypoints = entries
+    .map((entry) => entry.coords)
+    .filter((coords): coords is Coords => coords !== null);
+  const allEntriesFilled = entries.length >= 2 && entries.every((entry) => entry.coords !== null);
+
   useEffect(() => {
-    if (waypoints.length < 2) {
+    if (!allEntriesFilled) {
       setRoute(null);
       return;
     }
@@ -77,10 +97,12 @@ export default function TripScreenWeb() {
     return () => {
       cancelled = true;
     };
-  }, [waypoints]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allEntriesFilled, JSON.stringify(waypoints)]);
 
   const startPlanning = () => {
-    setWaypoints([]);
+    setEntries([makeEntry(), makeEntry()]);
+    setActiveEntryId(null);
     setRoute(null);
     setDownloadedStops(null);
     setTripName('');
@@ -89,6 +111,37 @@ export default function TripScreenWeb() {
 
   const cancelPlanning = () => {
     setMode('list');
+  };
+
+  const updateEntry = (id: string, changes: Partial<WaypointEntry>) => {
+    setEntries((prev) => prev.map((entry) => (entry.id === id ? { ...entry, ...changes } : entry)));
+  };
+
+  const handleSelectSuggestion = (id: string, result: AddressSearchResult) => {
+    updateEntry(id, { label: result.label, coords: { latitude: result.latitude, longitude: result.longitude } });
+  };
+
+  const addStop = () => {
+    setEntries((prev) => {
+      const next = [...prev];
+      next.splice(next.length - 1, 0, makeEntry());
+      return next;
+    });
+  };
+
+  const removeEntry = (id: string) => {
+    setEntries((prev) => (prev.length <= 2 ? prev : prev.filter((entry) => entry.id !== id)));
+  };
+
+  const handleMapPick = async (coords: Coords) => {
+    const targetId = activeEntryId ?? entries.find((entry) => entry.coords === null)?.id ?? entries[entries.length - 1].id;
+    updateEntry(targetId, { label: 'Locating…', coords });
+    try {
+      const result = await reverseGeocodeApi(coords);
+      updateEntry(targetId, { label: result.label ?? `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`, coords });
+    } catch {
+      updateEntry(targetId, { label: `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`, coords });
+    }
   };
 
   const handleDownload = async () => {
@@ -149,7 +202,7 @@ export default function TripScreenWeb() {
     );
   }
 
-  const canDownload = waypoints.length >= 2 && route !== null && downloadStatus !== 'downloading';
+  const canDownload = allEntriesFilled && route !== null && downloadStatus !== 'downloading';
 
   return (
     <ThemedView style={styles.container}>
@@ -169,14 +222,17 @@ export default function TripScreenWeb() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <ClickHandler onPick={(coords) => setWaypoints((prev) => [...prev, coords])} />
-            {waypoints.map((point, index) => (
-              <Marker key={index} position={[point.latitude, point.longitude]}>
-                <Popup>
-                  {index === 0 ? 'Start' : index === waypoints.length - 1 ? 'End' : `Stop ${index + 1}`}
-                </Popup>
-              </Marker>
-            ))}
+            <ClickHandler onPick={handleMapPick} />
+            {entries.map((entry, index) =>
+              entry.coords ? (
+                <Marker key={entry.id} position={[entry.coords.latitude, entry.coords.longitude]}>
+                  <Popup>
+                    {index === 0 ? 'Start' : index === entries.length - 1 ? 'End' : `Stop ${index}`}
+                    {entry.label ? ` — ${entry.label}` : ''}
+                  </Popup>
+                </Marker>
+              ) : null
+            )}
             {route && (
               <Polyline
                 positions={route.geometry.map((point) => [point.latitude, point.longitude])}
@@ -188,21 +244,50 @@ export default function TripScreenWeb() {
 
         <ScrollView contentContainerStyle={styles.content}>
           <ThemedText themeColor="textSecondary">
-            Tap the map to drop points along your route — start, any stops along the way, and
-            the end. The actual road path between them gets downloaded, not just straight
-            lines.
+            Type an address for your start, end, and any stops along the way — or tap the map
+            to drop a point instead. The actual road path between them gets downloaded, not
+            just straight lines.
           </ThemedText>
+
+          <ThemedView style={styles.entriesList}>
+            {entries.map((entry, index) => {
+              const isStart = index === 0;
+              const isEnd = index === entries.length - 1;
+              const placeholder = isStart ? 'Starting address' : isEnd ? 'Destination address' : `Stop ${index}`;
+              return (
+                <ThemedView
+                  key={entry.id}
+                  style={[styles.entryRow, { zIndex: entry.id === activeEntryId ? 30 : 1 }]}>
+                  <ThemedView style={[styles.entryDot, { backgroundColor: isStart || isEnd ? theme.accent : theme.border }]} />
+                  <ThemedView style={styles.entryInputWrapper}>
+                    <AddressSearchInput
+                      placeholder={placeholder}
+                      value={entry.label}
+                      onChangeText={(text) => updateEntry(entry.id, { label: text, coords: null })}
+                      onSelect={(result) => handleSelectSuggestion(entry.id, result)}
+                      onFocus={() => setActiveEntryId(entry.id)}
+                    />
+                  </ThemedView>
+                  {!isStart && !isEnd && (
+                    <Pressable onPress={() => removeEntry(entry.id)} style={styles.removeButton}>
+                      <Ionicons name="close" size={18} color={theme.textSecondary} />
+                    </Pressable>
+                  )}
+                </ThemedView>
+              );
+            })}
+          </ThemedView>
+
+          <Pressable onPress={addStop} style={styles.addStopButton}>
+            <Ionicons name="add-circle-outline" size={18} color={theme.accent} />
+            <ThemedText type="linkPrimary">Add a stop</ThemedText>
+          </Pressable>
 
           <ThemedView style={styles.waypointRow}>
             <ThemedText type="small" themeColor="textSecondary">
-              {waypoints.length} point{waypoints.length === 1 ? '' : 's'}
+              {waypoints.length} of {entries.length} point{entries.length === 1 ? '' : 's'} set
               {route ? ` · ${formatMiles(route.distanceMeters)}` : ''}
             </ThemedText>
-            {waypoints.length > 0 && (
-              <Pressable onPress={() => setWaypoints((prev) => prev.slice(0, -1))}>
-                <ThemedText type="linkPrimary">Undo last point</ThemedText>
-              </Pressable>
-            )}
           </ThemedView>
 
           {routeStatus === 'loading' && (
@@ -321,6 +406,35 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.four,
     gap: Spacing.three,
+  },
+  entriesList: {
+    gap: Spacing.two,
+    zIndex: 5,
+  },
+  entryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  entryDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  entryInputWrapper: {
+    flex: 1,
+  },
+  removeButton: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addStopButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    alignSelf: 'flex-start',
   },
   waypointRow: {
     flexDirection: 'row',

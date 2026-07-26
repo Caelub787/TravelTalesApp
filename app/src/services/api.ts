@@ -92,6 +92,16 @@ export interface ArticleAskResponse {
   answer: string;
 }
 
+export interface AddressSearchResult {
+  label: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface AddressSearchResponse {
+  results: AddressSearchResult[];
+}
+
 function requireApiUrl(): string {
   if (!API_URL) {
     throw new Error(
@@ -164,4 +174,8 @@ export function fetchArticleContent(req: ArticleContentRequest): Promise<Article
 
 export function askAboutArticle(req: ArticleAskRequest): Promise<ArticleAskResponse> {
   return postJson<ArticleAskResponse>('/api/article-ask', req);
+}
+
+export function searchAddressApi(query: string): Promise<AddressSearchResponse> {
+  return getJson<AddressSearchResponse>('/api/address-search', { q: query });
 }

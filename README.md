@@ -130,12 +130,14 @@ both.
 
 ## Offline trip planning (🧭 Trips)
 
-Plan a route by tapping points on the map — start, any stops, and the end — and the app
-fetches the actual road-following path between them (via [OSRM](https://project-osrm.org)'s
-free public routing API, not straight lines), so "everything in between" the pins is
-covered, not just the pins themselves. Tap **Download for offline** and the app samples
-the whole route roughly every 3 miles and pre-fetches nearby-article content for each
-sampled stop, storing it on-device.
+Plan a route Google-Maps style: type your starting address, destination, and any stops
+along the way (address autocomplete via [Nominatim](https://nominatim.org)'s free,
+keyless search — no Google Maps API key needed), or tap points on the map instead if you'd
+rather drop pins. Either way, the app fetches the actual road-following path between them
+(via [OSRM](https://project-osrm.org)'s free public routing API, not straight lines), so
+"everything in between" the pins is covered, not just the pins themselves. Tap **Download
+for offline** and the app samples the whole route roughly every 3 miles and pre-fetches
+nearby-article content for each sampled stop, storing it on-device.
 
 Once saved, tap **Follow this trip** and the app watches your GPS position — which works
 with zero network/cell signal, unlike everything else in this app — and surfaces each
