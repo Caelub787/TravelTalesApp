@@ -26,7 +26,7 @@ const MAX_NEARBY_ARTICLES = 40;
 // route stop), which is enough to trip Wikipedia's anonymous rate limit even well under
 // its documented ceiling. Retrying a 429 with backoff lets a long trip download finish
 // instead of aborting on the first transient rate limit.
-const MAX_RATE_LIMIT_RETRIES = 3;
+const MAX_RATE_LIMIT_RETRIES = 4;
 const RATE_LIMIT_BASE_DELAY_MS = 500;
 
 const CATEGORY_KEYWORDS: Record<Exclude<CategoryId, "general">, string[]> = {

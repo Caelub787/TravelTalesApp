@@ -140,6 +140,12 @@ you'd rather drop pins. Either way, the app fetches the actual road-following pa
 for offline** and the app samples the whole route roughly every 3 miles and pre-fetches
 nearby-article content for each sampled stop, storing it on-device.
 
+Downloading paces itself between stops (and slows down further, automatically, if it hits
+Wikipedia's rate limit) specifically so a long route with dozens of stops finishes with
+every stop's data intact rather than skipping the ones that got rate-limited — a single
+stop only comes back empty after several retries at a deliberately slower pace, not on the
+first blip. This means a long trip's download can take a few minutes; that's expected.
+
 Once saved, tap **Follow this trip** and the app watches your GPS position — which works
 with zero network/cell signal, unlike everything else in this app — and surfaces each
 stop's downloaded content automatically as you pass within ~400m of it, with read-aloud

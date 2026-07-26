@@ -379,7 +379,9 @@ export default function TripScreenWeb() {
             <ThemedView style={styles.notice}>
               <ActivityIndicator />
               <ThemedText themeColor="textSecondary">
-                Downloading stop {progress.done} of {progress.total}…
+                Downloading stop {progress.done} of {progress.total}… deliberately paced (and
+                slows down further if needed) so every stop gets its data — long trips can take
+                a few minutes.
               </ThemedText>
             </ThemedView>
           )}
