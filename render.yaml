@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: traveltalesapp-server
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
