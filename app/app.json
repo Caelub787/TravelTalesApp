@@ -14,7 +14,7 @@
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.traveltalesapp.app",
       "config": {
-        "googleMapsApiKey": "REPLACE_WITH_YOUR_GOOGLE_MAPS_IOS_API_KEY"
+        "googleMapsApiKey": "AIzaSyA5Zgtw92-CnoRRknqjckk1L17m8MEELHA"
       }
     },
     "android": {
@@ -28,7 +28,7 @@
       "predictiveBackGestureEnabled": false,
       "config": {
         "googleMaps": {
-          "apiKey": "REPLACE_WITH_YOUR_GOOGLE_MAPS_ANDROID_API_KEY"
+          "apiKey": "AIzaSyA5Zgtw92-CnoRRknqjckk1L17m8MEELHA"
         }
       }
     },
