@@ -2,7 +2,7 @@
 // keyless equivalent of Google/Bing's search APIs, so this is what lets Story Mode research
 // the open web (not just Wikipedia) without requiring another account/API key/bill.
 const SEARCH_URL = "https://html.duckduckgo.com/html/";
-const USER_AGENT = "Mozilla/5.0 (compatible; TravelTales/1.0; +personal project)";
+const USER_AGENT = "Mozilla/5.0 (compatible; TravelTalesApp/1.0; +personal project)";
 
 export interface WebSearchResult {
   title: string;

@@ -1,6 +1,6 @@
 {
-  "name": "TravelTales",
-  "short_name": "TravelTales",
+  "name": "TravelTalesApp",
+  "short_name": "TravelTalesApp",
   "description": "Real, verifiable stories and facts about wherever you are — live, and offline once downloaded.",
   "start_url": "/",
   "scope": "/",

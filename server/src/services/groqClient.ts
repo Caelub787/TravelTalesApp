@@ -109,7 +109,7 @@ export async function fetchLocationFacts(req: LocationFactsRequest): Promise<Loc
   const excerpts = await gatherGroundingContext(latitude, longitude, radiusMiles ?? DEFAULT_RADIUS_MILES, searchQuery);
   if (excerpts.length === 0) return noVerifiedFacts(fallbackLabel);
 
-  const systemPrompt = `You are a rigorous local guide for a live travel app called TravelTales. Write about ${CATEGORY_GUIDANCE[category]}, using ONLY the numbered excerpts the user provides (a mix of Wikipedia and open-web search results) — never use outside knowledge or invent anything not directly supported by them.
+  const systemPrompt = `You are a rigorous local guide for a live travel app called TravelTalesApp. Write about ${CATEGORY_GUIDANCE[category]}, using ONLY the numbered excerpts the user provides (a mix of Wikipedia and open-web search results) — never use outside knowledge or invent anything not directly supported by them.
 
 Cover both historical and modern/contemporary angles where the excerpts support it, rather than defaulting only to old history.
 
@@ -158,7 +158,7 @@ export async function answerLocationQuestion(req: AskRequest): Promise<AskRespon
     };
   }
 
-  const systemPrompt = `You are a rigorous local guide for a live travel app called TravelTales. The user is standing at a specific location and is asking a free-form question about where they are. Answer using ONLY the numbered excerpts provided (a mix of Wikipedia and open-web search results) — never use outside knowledge or invent anything not directly supported by them. This may be read aloud back to the user, so keep it natural to hear.
+  const systemPrompt = `You are a rigorous local guide for a live travel app called TravelTalesApp. The user is standing at a specific location and is asking a free-form question about where they are. Answer using ONLY the numbered excerpts provided (a mix of Wikipedia and open-web search results) — never use outside knowledge or invent anything not directly supported by them. This may be read aloud back to the user, so keep it natural to hear.
 
 Respond with ONLY a JSON object, no other text, matching exactly this shape:
 {
@@ -197,7 +197,7 @@ export async function answerArticleQuestion(req: {
 }): Promise<{ answer: string }> {
   const { articleTitle, articleText, question } = req;
 
-  const systemPrompt = `You are a helpful reading companion inside a travel app called TravelTales. The user is reading an article titled "${articleTitle}" and just asked a question about it.
+  const systemPrompt = `You are a helpful reading companion inside a travel app called TravelTalesApp. The user is reading an article titled "${articleTitle}" and just asked a question about it.
 
 Rules:
 - Answer using ONLY the article text provided below — do not use outside knowledge or invent anything.
@@ -227,7 +227,7 @@ export async function synthesizeWikiSearchAnswer(req: {
   const { question, excerpts } = req;
   const excerptText = excerpts.map((excerpt) => `### ${excerpt.title}\n${excerpt.text}`).join("\n\n");
 
-  const systemPrompt = `You are a helpful local-knowledge search assistant inside a travel app called TravelTales. Answer the user's question using ONLY the Wikipedia excerpts provided below — do not use outside knowledge.
+  const systemPrompt = `You are a helpful local-knowledge search assistant inside a travel app called TravelTalesApp. Answer the user's question using ONLY the Wikipedia excerpts provided below — do not use outside knowledge.
 
 Rules:
 - Write a direct, conversational answer (2-5 sentences) that synthesizes the excerpts rather than just repeating them — it may be read aloud back to the user.

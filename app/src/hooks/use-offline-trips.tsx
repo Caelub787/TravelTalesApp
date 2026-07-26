@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import type { Coords } from '@/hooks/use-live-location';
-import type { NearbyArticle } from '@/services/api';
+import type { LocationFactsResponse, NearbyArticle, NearbyPlace } from '@/services/api';
 
 const STORAGE_KEY = 'traveltales:offline-trips';
 const ACTIVE_TRIP_KEY = 'traveltales:active-trip-id';
@@ -13,6 +13,8 @@ export interface TripStop {
   distanceAlongRouteMeters: number;
   placeLabel: string | null;
   articles: NearbyArticle[];
+  places: NearbyPlace[];
+  story: LocationFactsResponse | null;
 }
 
 export interface Trip {

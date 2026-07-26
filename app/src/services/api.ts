@@ -92,6 +92,28 @@ export interface ArticleAskResponse {
   answer: string;
 }
 
+export interface NearbyPlacesRequest {
+  latitude: number;
+  longitude: number;
+  radiusMiles?: number;
+}
+
+export interface NearbyPlace {
+  id: string;
+  name: string;
+  category: string;
+  address: string | null;
+  rating: number | null;
+  userRatingCount: number | null;
+  latitude: number;
+  longitude: number;
+  mapsUrl: string | null;
+}
+
+export interface NearbyPlacesResponse {
+  places: NearbyPlace[];
+}
+
 export interface AddressSearchResult {
   label: string;
   latitude: number;
@@ -178,4 +200,8 @@ export function askAboutArticle(req: ArticleAskRequest): Promise<ArticleAskRespo
 
 export function searchAddressApi(query: string): Promise<AddressSearchResponse> {
   return getJson<AddressSearchResponse>('/api/address-search', { q: query });
+}
+
+export function fetchNearbyPlaces(req: NearbyPlacesRequest): Promise<NearbyPlacesResponse> {
+  return postJson<NearbyPlacesResponse>('/api/places-nearby', req);
 }

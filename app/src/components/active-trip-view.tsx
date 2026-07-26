@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
+import { NearbyPlacesList } from '@/components/nearby-places-list';
 import { SpeakButton } from '@/components/speak-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -50,8 +51,12 @@ export function ActiveTripView({ trip, onStop }: Props) {
       setNearby({ stop, index });
       setExpandedIndex(index);
       setVisited((prev) => new Set(prev).add(index));
-      if (preference === 'voice' && stop.articles[0]) {
-        speak(`You're near ${stop.placeLabel ?? 'a stop on your trip'}. ${stop.articles[0].snippet}`);
+      if (preference === 'voice') {
+        if (stop.story) {
+          speak(`You're near ${stop.placeLabel ?? 'a stop on your trip'}. ${stop.story.summary}`);
+        } else if (stop.articles[0]) {
+          speak(`You're near ${stop.placeLabel ?? 'a stop on your trip'}. ${stop.articles[0].snippet}`);
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,8 +115,9 @@ export function ActiveTripView({ trip, onStop }: Props) {
                     {stop.placeLabel ?? `${stop.latitude.toFixed(3)}, ${stop.longitude.toFixed(3)}`}
                   </ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
-                    {formatMiles(stop.distanceAlongRouteMeters)} into the trip · {stop.articles.length} article
-                    {stop.articles.length === 1 ? '' : 's'}
+                    {formatMiles(stop.distanceAlongRouteMeters)} into the trip · {stop.story ? '1 AI story · ' : ''}
+                    {stop.articles.length} article{stop.articles.length === 1 ? '' : 's'}
+                    {stop.places.length > 0 ? ` · ${stop.places.length} nearby` : ''}
                   </ThemedText>
                 </ThemedView>
                 <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={theme.textSecondary} />
@@ -119,7 +125,22 @@ export function ActiveTripView({ trip, onStop }: Props) {
 
               {expanded && (
                 <ThemedView style={styles.stopBody}>
-                  {stop.articles.length > 0 && (
+                  {stop.story && (
+                    <ThemedView style={[styles.storyBox, { borderColor: theme.border }]}>
+                      <ThemedView style={styles.storyHeader}>
+                        <Ionicons name="sparkles-outline" size={14} color={theme.accent} />
+                        <ThemedText type="smallBold" style={styles.storyTitle}>
+                          {stop.story.title}
+                        </ThemedText>
+                      </ThemedView>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {stop.story.summary}
+                      </ThemedText>
+                      <SpeakButton text={`${stop.story.title}. ${stop.story.summary}`} />
+                    </ThemedView>
+                  )}
+
+                  {!stop.story && stop.articles.length > 0 && (
                     <SpeakButton text={`${stop.placeLabel ?? ''}. ${stop.articles.map((a) => a.snippet).join(' ')}`} />
                   )}
                   {stop.articles.map((article, articleIndex) => (
@@ -137,6 +158,12 @@ export function ActiveTripView({ trip, onStop }: Props) {
                       </ThemedView>
                     </Pressable>
                   ))}
+
+                  {stop.places.length > 0 && (
+                    <ThemedView style={styles.placesSpacing}>
+                      <NearbyPlacesList result={{ places: stop.places }} />
+                    </ThemedView>
+                  )}
                 </ThemedView>
               )}
             </ThemedView>
@@ -221,5 +248,22 @@ const styles = StyleSheet.create({
   articleTextColumn: {
     flex: 1,
     gap: Spacing.half,
+  },
+  storyBox: {
+    borderWidth: 1,
+    borderRadius: Spacing.three,
+    padding: Spacing.three,
+    gap: Spacing.one,
+  },
+  storyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+  },
+  storyTitle: {
+    flex: 1,
+  },
+  placesSpacing: {
+    marginTop: Spacing.one,
   },
 });

@@ -76,6 +76,28 @@ export interface ReverseGeocodeResponse {
   label: string | null;
 }
 
+export interface NearbyPlacesRequest {
+  latitude: number;
+  longitude: number;
+  radiusMiles?: number;
+}
+
+export interface NearbyPlace {
+  id: string;
+  name: string;
+  category: string;
+  address: string | null;
+  rating: number | null;
+  userRatingCount: number | null;
+  latitude: number;
+  longitude: number;
+  mapsUrl: string | null;
+}
+
+export interface NearbyPlacesResponse {
+  places: NearbyPlace[];
+}
+
 export interface AddressSearchResult {
   label: string;
   latitude: number;

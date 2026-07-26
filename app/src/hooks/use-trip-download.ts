@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 import type { TripStop } from '@/hooks/use-offline-trips';
 import type { RouteSample } from '@/utils/route-sampling';
-import { fetchNearbyArticles } from '@/services/api';
+import { fetchLocationFacts, fetchNearbyArticles, fetchNearbyPlaces } from '@/services/api';
 import { reverseGeocode } from '@/utils/geocode';
 
 export type TripDownloadStatus = 'idle' | 'downloading' | 'error' | 'success';
@@ -66,12 +66,35 @@ export function useTripDownload() {
 
       if (!stopSucceeded) failedStops += 1;
 
+      // Places (Google Places) and the AI-written story are enrichments on top of the core
+      // Wikipedia articles above — attempted once per stop, best-effort. A failure here
+      // (no Places key configured, AI quota hit, etc.) doesn't count against the stop or
+      // trigger the same retry/backoff, since re-hammering an AI rate limit across a
+      // 100-stop trip would make things worse, not better; the stop just ends up with
+      // articles only, same as before this feature existed.
+      const [places, story] = await Promise.all([
+        fetchNearbyPlaces({ latitude: sample.latitude, longitude: sample.longitude, radiusMiles: STOP_RADIUS_MILES })
+          .then((response) => response.places)
+          .catch(() => []),
+        fetchLocationFacts({
+          latitude: sample.latitude,
+          longitude: sample.longitude,
+          placeLabel: placeLabel ?? undefined,
+          category: 'general',
+          radiusMiles: STOP_RADIUS_MILES,
+        })
+          .then((response) => (response.noVerifiedFactsFound ? null : response))
+          .catch(() => null),
+      ]);
+
       stops.push({
         latitude: sample.latitude,
         longitude: sample.longitude,
         distanceAlongRouteMeters: sample.distanceAlongRouteMeters,
         placeLabel,
         articles,
+        places,
+        story,
       });
       setProgress({ done: i + 1, total: samples.length });
 

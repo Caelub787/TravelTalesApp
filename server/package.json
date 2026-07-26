@@ -1,8 +1,8 @@
 {
-  "name": "traveltales-server",
+  "name": "traveltalesapp-server",
   "version": "0.1.0",
   "private": true,
-  "description": "Backend that grounds Claude web-search calls into verified location facts/stories for the TravelTales app.",
+  "description": "Backend that grounds AI calls into verified location facts/stories for the TravelTalesApp.",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

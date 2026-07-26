@@ -2,7 +2,7 @@ import type { AddressSearchResponse, ReverseGeocodeRequest, ReverseGeocodeRespon
 
 const NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse";
 const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
-const USER_AGENT = "TravelTales-App/1.0 (personal project; contact via GitHub)";
+const USER_AGENT = "TravelTalesApp/1.0 (personal project; contact via GitHub)";
 
 interface NominatimAddress {
   city?: string;

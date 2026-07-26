@@ -6,6 +6,7 @@ import { AnswerCard } from '@/components/answer-card';
 import { AskBox } from '@/components/ask-box';
 import { CategoryChips } from '@/components/category-chips';
 import { NearbyArticlesList } from '@/components/nearby-articles-list';
+import { NearbyPlacesList } from '@/components/nearby-places-list';
 import { RadiusControl } from '@/components/radius-control';
 import { StoryCard } from '@/components/story-card';
 import { SurpriseButton } from '@/components/surprise-button';
@@ -19,6 +20,7 @@ import { useContentMode } from '@/hooks/use-content-mode';
 import type { Coords } from '@/hooks/use-live-location';
 import type { LocationFactsStatus } from '@/hooks/use-location-facts';
 import { useNearbyArticles } from '@/hooks/use-nearby-articles';
+import { useNearbyPlaces } from '@/hooks/use-nearby-places';
 import { useOfflineAreas } from '@/hooks/use-offline-areas';
 import { useReadPreference } from '@/hooks/use-read-preference';
 import { useSearchRadius } from '@/hooks/use-search-radius';
@@ -59,10 +61,12 @@ export function LocationExplorer({
   const { saveArea } = useOfflineAreas();
   const { result: askResult, status: askStatus, error: askError, ask } = useAskQuestion();
   const { result: nearbyResult, status: nearbyStatus, error: nearbyError, isOffline, fetchNearby } = useNearbyArticles();
+  const { result: placesResult, fetchNearby: fetchNearbyPlaces } = useNearbyPlaces();
   const [filter, setFilter] = useState<CategoryId | 'all'>('all');
   const [areaDownloadStatus, setAreaDownloadStatus] = useState<'idle' | 'downloading' | 'success' | 'error'>('idle');
   const lastFetchedCoordsRef = useRef<Coords | null>(null);
   const lastRadiusRef = useRef<number | null>(null);
+  const lastPlacesCoordsRef = useRef<Coords | null>(null);
   const lastAskWasVoiceRef = useRef(false);
 
   useEffect(() => {
@@ -78,6 +82,17 @@ export function LocationExplorer({
       lastRadiusRef.current = radiusMiles;
     }
   }, [mode, coords, radiusMiles, fetchNearby]);
+
+  // Nearby destinations/lookouts show in both modes (not just Wiki), so they get their own,
+  // simpler "moved enough" gate independent of the Wiki-only articles fetch above.
+  useEffect(() => {
+    if (!coords) return;
+    const prev = lastPlacesCoordsRef.current;
+    if (!prev || distanceMeters(prev, coords) >= MOVED_THRESHOLD_METERS) {
+      lastPlacesCoordsRef.current = coords;
+      fetchNearbyPlaces(coords);
+    }
+  }, [coords, fetchNearbyPlaces]);
 
   const filteredArticles = useMemo(() => {
     const articles = nearbyResult?.articles ?? [];
@@ -225,6 +240,8 @@ export function LocationExplorer({
           {factsStatus === 'success' && factsResult && <StoryCard result={factsResult} />}
         </>
       )}
+
+      {placesResult && <NearbyPlacesList result={placesResult} />}
 
       <AskBox disabled={!coords} onSubmit={handleAsk} />
 

@@ -1,31 +1,36 @@
 {
   "expo": {
-    "name": "TravelTales",
-    "slug": "traveltales",
-    "owner": "calebmreed",
+    "name": "TravelTalesApp",
+    "slug": "traveltalesapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "traveltales",
+    "scheme": "traveltalesapp",
     "userInterfaceStyle": "automatic",
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/22cf42f0-09b3-48c6-9a4d-d958de32b486"
-    },
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.traveltalesapp.app",
+      "config": {
+        "googleMapsApiKey": "REPLACE_WITH_YOUR_GOOGLE_MAPS_IOS_API_KEY"
+      }
     },
     "android": {
-      "package": "com.traveltales.app",
+      "package": "com.traveltalesapp.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "REPLACE_WITH_YOUR_GOOGLE_MAPS_ANDROID_API_KEY"
+        }
+      }
     },
     "web": {
       "output": "static",
@@ -37,7 +42,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "TravelTales uses your location to find real facts and stories about the place you're currently standing in."
+          "locationWhenInUsePermission": "TravelTalesApp uses your location to find real facts and stories about the place you're currently standing in."
         }
       ],
       [
@@ -51,19 +56,14 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "TravelTales uses your microphone to let you ask questions about where you are out loud.",
-          "speechRecognitionPermission": "TravelTales uses speech recognition to turn your spoken question into text."
+          "microphonePermission": "TravelTalesApp uses your microphone to let you ask questions about where you are out loud.",
+          "speechRecognitionPermission": "TravelTalesApp uses speech recognition to turn your spoken question into text."
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },
-    "extra": {
-      "eas": {
-        "projectId": "22cf42f0-09b3-48c6-9a4d-d958de32b486"
-      }
     }
   }
 }
