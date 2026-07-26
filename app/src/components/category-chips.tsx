@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import type { Category, CategorySelection } from '@/constants/categories';
@@ -17,7 +17,7 @@ export function CategoryChips({ categories, selected, disabled, onSelect }: Prop
   const theme = useTheme();
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <View style={styles.row}>
       {categories.map((category) => {
         const isSelected = category.id === selected;
         return (
@@ -44,16 +44,16 @@ export function CategoryChips({ categories, selected, disabled, onSelect }: Prop
           </Pressable>
         );
       })}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.two,
     paddingVertical: Spacing.half,
-    paddingRight: Spacing.three,
   },
   chip: {
     flexDirection: 'row',
