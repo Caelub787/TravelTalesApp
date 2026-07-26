@@ -6,6 +6,7 @@ import { CrashBoundary } from '@/components/crash-boundary';
 import { ArticleHistoryProvider } from '@/hooks/use-article-history';
 import { ArticleViewerProvider } from '@/hooks/use-article-viewer';
 import { ContentModeProvider } from '@/hooks/use-content-mode';
+import { OfflineTripsProvider } from '@/hooks/use-offline-trips';
 import { ReadPreferenceProvider } from '@/hooks/use-read-preference';
 import { SavedItemsProvider } from '@/hooks/use-saved-items';
 import { SearchRadiusProvider } from '@/hooks/use-search-radius';
@@ -21,8 +22,10 @@ export default function RootLayout() {
               <SavedItemsProvider>
                 <ArticleHistoryProvider>
                   <ArticleViewerProvider>
-                    <Stack screenOptions={{ headerShown: false }} />
-                    <ArticleViewerModal />
+                    <OfflineTripsProvider>
+                      <Stack screenOptions={{ headerShown: false }} />
+                      <ArticleViewerModal />
+                    </OfflineTripsProvider>
                   </ArticleViewerProvider>
                 </ArticleHistoryProvider>
               </SavedItemsProvider>

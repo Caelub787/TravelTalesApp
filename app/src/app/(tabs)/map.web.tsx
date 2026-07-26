@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import L, { type Map as LeafletMap } from 'leaflet';
+import type { Map as LeafletMap } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet } from 'react-native';
@@ -14,15 +14,9 @@ import { useLiveLocation, type Coords } from '@/hooks/use-live-location';
 import { useLocationFacts } from '@/hooks/use-location-facts';
 import { useTheme } from '@/hooks/use-theme';
 import { reverseGeocode } from '@/utils/geocode';
+import { fixLeafletDefaultIcon } from '@/utils/leaflet-icon-fix';
 
-// Leaflet's default marker icons resolve to broken paths under most bundlers (Metro
-// included) — point them at Leaflet's own CDN-hosted images instead.
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+fixLeafletDefaultIcon();
 
 const FALLBACK_CENTER: [number, number] = [40, -100];
 const FALLBACK_ZOOM = 4;

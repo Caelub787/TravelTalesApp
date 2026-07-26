@@ -48,8 +48,9 @@ stories about that spot instead of just your current location, a free-form "ask 
 search box with voice input that can auto-submit and read its answer back out loud (a
 talk-and-listen loop, not just transcription), a Settings toggle for whether answers/
 articles read aloud automatically or wait for a tap, an on-device history of articles
-you've opened, and the ability to save/favorite stories and answers for later — all under
-**🔖 Saved**. No accounts.
+you've opened, the ability to save/favorite stories and answers for later (**🔖 Saved**),
+and offline trip planning (**🧭 Trips** — see below) for downloading stories along an
+entire route ahead of time. No accounts.
 
 ## Prerequisites
 
@@ -126,6 +127,28 @@ It's web-only: Leaflet needs a browser DOM, which native apps don't have. On nat
 builds, `app/src/app/map.tsx` shows a simple message pointing to the website instead —
 everything else (categories, questions, voice, read aloud, saved items) works the same on
 both.
+
+## Offline trip planning (🧭 Trips)
+
+Plan a route by tapping points on the map — start, any stops, and the end — and the app
+fetches the actual road-following path between them (via [OSRM](https://project-osrm.org)'s
+free public routing API, not straight lines), so "everything in between" the pins is
+covered, not just the pins themselves. Tap **Download for offline** and the app samples
+the whole route roughly every 3 miles and pre-fetches nearby-article content for each
+sampled stop, storing it on-device.
+
+Once saved, tap **Follow this trip** and the app watches your GPS position — which works
+with zero network/cell signal, unlike everything else in this app — and surfaces each
+stop's downloaded content automatically as you pass within ~400m of it, with read-aloud
+available. This part works on native too, not just web, since it doesn't need the
+interactive map, only stored data and GPS. Route *planning* is web-only (same reason the
+map is); once a trip is downloaded, following it works anywhere.
+
+Note on "offline": this pre-fetches content while you still have signal, then serves it
+from local storage as you travel — it does not generate new content with zero connectivity
+(that would need a full on-device language model, a much bigger undertaking). Practically,
+this gets you the same result on the road: the story is already there the moment you pass
+by, nothing needs to load in that moment.
 
 ## Voice input and text-to-speech
 
