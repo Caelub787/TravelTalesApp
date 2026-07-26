@@ -22,6 +22,12 @@ const EARTH_RADIUS_METERS = 6371000;
 const MAX_GEOSEARCH_RADIUS_METERS = 10000;
 const MAX_PAGES = 6;
 const MAX_NEARBY_ARTICLES = 40;
+// Trip downloads can fire dozens of geosearch+extract calls back to back (one pair per
+// route stop), which is enough to trip Wikipedia's anonymous rate limit even well under
+// its documented ceiling. Retrying a 429 with backoff lets a long trip download finish
+// instead of aborting on the first transient rate limit.
+const MAX_RATE_LIMIT_RETRIES = 3;
+const RATE_LIMIT_BASE_DELAY_MS = 500;
 
 const CATEGORY_KEYWORDS: Record<Exclude<CategoryId, "general">, string[]> = {
   history: ["history", "historic", "founded", "war", "battle", "century", "established", "colonial", "ancient"],
@@ -50,6 +56,10 @@ interface ExtractResult {
   fullurl?: string;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function wikiFetch<T>(params: Record<string, string>): Promise<T> {
   const url = new URL(API_BASE);
   url.searchParams.set("format", "json");
@@ -57,11 +67,21 @@ async function wikiFetch<T>(params: Record<string, string>): Promise<T> {
     url.searchParams.set(key, value);
   }
 
-  const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
-  if (!response.ok) {
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+    if (response.ok) {
+      return response.json() as Promise<T>;
+    }
+    if (response.status === 429 && attempt < MAX_RATE_LIMIT_RETRIES) {
+      const retryAfterSeconds = Number(response.headers.get("retry-after"));
+      const delayMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+        ? retryAfterSeconds * 1000
+        : RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt;
+      await sleep(delayMs);
+      continue;
+    }
     throw new Error(`Wikipedia API request failed with status ${response.status}`);
   }
-  return response.json() as Promise<T>;
 }
 
 function toRadians(degrees: number): number {

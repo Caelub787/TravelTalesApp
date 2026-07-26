@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
@@ -61,6 +62,8 @@ export default function TripScreenWeb() {
   const [mode, setMode] = useState<'list' | 'planning'>('list');
   const [entries, setEntries] = useState<WaypointEntry[]>([makeEntry(), makeEntry()]);
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const [locatingEntryId, setLocatingEntryId] = useState<string | null>(null);
+  const [locateError, setLocateError] = useState<string | null>(null);
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [routeError, setRouteError] = useState<string | null>(null);
@@ -131,6 +134,30 @@ export default function TripScreenWeb() {
 
   const removeEntry = (id: string) => {
     setEntries((prev) => (prev.length <= 2 ? prev : prev.filter((entry) => entry.id !== id)));
+  };
+
+  const useCurrentLocationFor = async (id: string) => {
+    setLocateError(null);
+    setLocatingEntryId(id);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== Location.PermissionStatus.GRANTED) {
+        throw new Error('Location permission was denied');
+      }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.LocationAccuracy.Balanced });
+      const coords: Coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+      updateEntry(id, { label: 'Locating…', coords });
+      try {
+        const result = await reverseGeocodeApi(coords);
+        updateEntry(id, { label: result.label ?? 'Current location', coords });
+      } catch {
+        updateEntry(id, { label: 'Current location', coords });
+      }
+    } catch (err) {
+      setLocateError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLocatingEntryId(null);
+    }
   };
 
   const handleMapPick = async (coords: Coords) => {
@@ -268,6 +295,18 @@ export default function TripScreenWeb() {
                       onFocus={() => setActiveEntryId(entry.id)}
                     />
                   </ThemedView>
+                  {(isStart || isEnd) && (
+                    <Pressable
+                      onPress={() => useCurrentLocationFor(entry.id)}
+                      disabled={locatingEntryId === entry.id}
+                      style={styles.locateButton}>
+                      {locatingEntryId === entry.id ? (
+                        <ActivityIndicator size="small" color={theme.accent} />
+                      ) : (
+                        <Ionicons name="locate" size={18} color={theme.accent} />
+                      )}
+                    </Pressable>
+                  )}
                   {!isStart && !isEnd && (
                     <Pressable onPress={() => removeEntry(entry.id)} style={styles.removeButton}>
                       <Ionicons name="close" size={18} color={theme.textSecondary} />
@@ -282,6 +321,12 @@ export default function TripScreenWeb() {
             <Ionicons name="add-circle-outline" size={18} color={theme.accent} />
             <ThemedText type="linkPrimary">Add a stop</ThemedText>
           </Pressable>
+
+          {locateError && (
+            <ThemedView type="backgroundElement" style={styles.notice}>
+              <ThemedText>Couldn't get your location: {locateError}</ThemedText>
+            </ThemedView>
+          )}
 
           <ThemedView style={styles.waypointRow}>
             <ThemedText type="small" themeColor="textSecondary">
@@ -425,6 +470,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   removeButton: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locateButton: {
     width: 28,
     height: 28,
     alignItems: 'center',

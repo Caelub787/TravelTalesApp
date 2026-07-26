@@ -132,8 +132,9 @@ both.
 
 Plan a route Google-Maps style: type your starting address, destination, and any stops
 along the way (address autocomplete via [Nominatim](https://nominatim.org)'s free,
-keyless search — no Google Maps API key needed), or tap points on the map instead if you'd
-rather drop pins. Either way, the app fetches the actual road-following path between them
+keyless search — no Google Maps API key needed), tap the 🎯 button next to the start or end
+field to use your current GPS position instead of typing it, or tap points on the map if
+you'd rather drop pins. Either way, the app fetches the actual road-following path between them
 (via [OSRM](https://project-osrm.org)'s free public routing API, not straight lines), so
 "everything in between" the pins is covered, not just the pins themselves. Tap **Download
 for offline** and the app samples the whole route roughly every 3 miles and pre-fetches
