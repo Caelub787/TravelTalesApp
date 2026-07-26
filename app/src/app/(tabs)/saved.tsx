@@ -10,15 +10,17 @@ import { ThemedView } from '@/components/themed-view';
 import { CardShadow, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useArticleHistory } from '@/hooks/use-article-history';
 import { useArticleViewer } from '@/hooks/use-article-viewer';
+import { useOfflineAreas } from '@/hooks/use-offline-areas';
 import { useSavedItems } from '@/hooks/use-saved-items';
 import { useTheme } from '@/hooks/use-theme';
 import { formatRelativeTime } from '@/utils/format-time';
 
-type Tab = 'saved' | 'history';
+type Tab = 'saved' | 'history' | 'offline';
 
 export default function SavedScreen() {
   const { items } = useSavedItems();
   const { items: history, clear: clearHistory } = useArticleHistory();
+  const { areas, deleteArea } = useOfflineAreas();
   const { open } = useArticleViewer();
   const theme = useTheme();
   const [tab, setTab] = useState<Tab>('saved');
@@ -38,6 +40,7 @@ export default function SavedScreen() {
               [
                 { id: 'saved' as const, label: 'Saved', icon: 'bookmark-outline' as const },
                 { id: 'history' as const, label: 'History', icon: 'time-outline' as const },
+                { id: 'offline' as const, label: 'Offline areas', icon: 'cloud-download-outline' as const },
               ]
             ).map((option) => {
               const selected = option.id === tab;
@@ -120,6 +123,43 @@ export default function SavedScreen() {
               ))}
             </>
           )}
+
+          {tab === 'offline' && (
+            <>
+              {areas.length === 0 && (
+                <ThemedView style={styles.emptyState}>
+                  <Ionicons name="cloud-download-outline" size={32} color={theme.textSecondary} />
+                  <ThemedText themeColor="textSecondary">
+                    No downloaded areas yet — on the Explore screen (Wiki Facts mode), tap
+                    "Download this area for offline" to browse and search it with no
+                    connection.
+                  </ThemedText>
+                </ThemedView>
+              )}
+              {areas.map((area) => (
+                <ThemedView
+                  key={area.id}
+                  type="backgroundElement"
+                  style={[styles.areaRow, { borderColor: theme.border, shadowColor: theme.text }]}>
+                  <ThemedView style={[styles.historyIcon, { backgroundColor: theme.backgroundSelected }]}>
+                    <Ionicons name="location" size={16} color={theme.accent} />
+                  </ThemedView>
+                  <ThemedView style={styles.historyBody}>
+                    <ThemedText type="smallBold" numberOfLines={1}>
+                      {area.placeLabel ?? `${area.center.latitude.toFixed(3)}, ${area.center.longitude.toFixed(3)}`}
+                    </ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {area.radiusMiles} mi radius · {area.articles.length} articles · downloaded{' '}
+                      {formatRelativeTime(area.downloadedAt)}
+                    </ThemedText>
+                  </ThemedView>
+                  <Pressable onPress={() => deleteArea(area.id)}>
+                    <Ionicons name="trash-outline" size={18} color={theme.textSecondary} />
+                  </Pressable>
+                </ThemedView>
+              ))}
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -146,6 +186,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.two,
   },
   tabChip: {
@@ -166,6 +207,15 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: Spacing.three,
+    borderWidth: 1,
+    padding: Spacing.three,
+    gap: Spacing.two,
+    ...CardShadow,
+  },
+  areaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: Spacing.three,

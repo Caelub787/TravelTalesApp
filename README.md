@@ -150,6 +150,17 @@ from local storage as you travel — it does not generate new content with zero 
 this gets you the same result on the road: the story is already there the moment you pass
 by, nothing needs to load in that moment.
 
+### Downloading an area (not just a route)
+
+On the Explore screen, in Wiki Facts mode, **Download this area for offline** caches
+nearby articles for your current position and search radius. From then on, browsing and
+asking questions within that radius keeps working with no connection at all: a live
+request is always tried first (freshest data), and if it fails, the app transparently
+falls back to whatever's downloaded — for browsing, and for "ask a question" (matched
+locally by keyword against the downloaded articles' text, since AI synthesis also needs a
+connection). Downloaded areas and trip stops both count as coverage for this fallback.
+Manage or delete downloaded areas under **🔖 Saved → Offline areas**.
+
 ## Voice input and text-to-speech
 
 - **Ask a question** (text or 🎤 voice) on the home screen or after picking a location on

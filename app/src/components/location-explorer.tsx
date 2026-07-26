@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 
 import { AnswerCard } from '@/components/answer-card';
 import { AskBox } from '@/components/ask-box';
@@ -18,12 +19,15 @@ import { useContentMode } from '@/hooks/use-content-mode';
 import type { Coords } from '@/hooks/use-live-location';
 import type { LocationFactsStatus } from '@/hooks/use-location-facts';
 import { useNearbyArticles } from '@/hooks/use-nearby-articles';
+import { useOfflineAreas } from '@/hooks/use-offline-areas';
 import { useReadPreference } from '@/hooks/use-read-preference';
 import { useSearchRadius } from '@/hooks/use-search-radius';
 import { useSpeakable } from '@/hooks/use-speakable';
-import type { LocationFactsResponse, NearbyArticle } from '@/services/api';
+import { useTheme } from '@/hooks/use-theme';
+import { fetchNearbyArticles, type LocationFactsResponse, type NearbyArticle } from '@/services/api';
 import { matchesCategory } from '@/utils/category-match';
 import { distanceMeters } from '@/utils/distance';
+import { reverseGeocode } from '@/utils/geocode';
 
 const MOVED_THRESHOLD_METERS = 400;
 
@@ -46,14 +50,17 @@ export function LocationExplorer({
   factsError,
   onSelectCategory,
 }: Props) {
+  const theme = useTheme();
   const { mode } = useContentMode();
   const { radiusMiles } = useSearchRadius();
   const { preference: readPreference } = useReadPreference();
   const { speak } = useSpeakable();
   const { open: openArticle } = useArticleViewer();
+  const { saveArea } = useOfflineAreas();
   const { result: askResult, status: askStatus, error: askError, ask } = useAskQuestion();
-  const { result: nearbyResult, status: nearbyStatus, error: nearbyError, fetchNearby } = useNearbyArticles();
+  const { result: nearbyResult, status: nearbyStatus, error: nearbyError, isOffline, fetchNearby } = useNearbyArticles();
   const [filter, setFilter] = useState<CategoryId | 'all'>('all');
+  const [areaDownloadStatus, setAreaDownloadStatus] = useState<'idle' | 'downloading' | 'success' | 'error'>('idle');
   const lastFetchedCoordsRef = useRef<Coords | null>(null);
   const lastRadiusRef = useRef<number | null>(null);
   const lastAskWasVoiceRef = useRef(false);
@@ -114,9 +121,58 @@ export function LocationExplorer({
     }
   }, [mode, filteredArticles, nearbyResult, onSelectCategory, openArticle]);
 
+  const handleDownloadArea = useCallback(async () => {
+    if (!coords) return;
+    setAreaDownloadStatus('downloading');
+    try {
+      const [label, response] = await Promise.all([
+        reverseGeocode(coords).catch(() => null),
+        fetchNearbyArticles({ latitude: coords.latitude, longitude: coords.longitude, radiusMiles }),
+      ]);
+      saveArea({
+        id: `area-${Date.now()}`,
+        center: coords,
+        radiusMiles,
+        placeLabel: label,
+        downloadedAt: Date.now(),
+        articles: response.articles,
+      });
+      setAreaDownloadStatus('success');
+    } catch {
+      setAreaDownloadStatus('error');
+    }
+  }, [coords, radiusMiles, saveArea]);
+
   return (
     <ThemedView style={styles.container}>
       <RadiusControl />
+
+      {mode === 'wiki' && (
+        <ThemedView style={styles.offlineRow}>
+          <Pressable
+            onPress={handleDownloadArea}
+            disabled={!coords || areaDownloadStatus === 'downloading'}
+            style={[styles.downloadButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border, opacity: coords ? 1 : 0.5 }]}>
+            <Ionicons
+              name={areaDownloadStatus === 'success' ? 'checkmark-circle' : 'cloud-download-outline'}
+              size={14}
+              color={areaDownloadStatus === 'success' ? theme.accent : theme.textSecondary}
+            />
+            <ThemedText type="small" themeColor="textSecondary">
+              {areaDownloadStatus === 'downloading'
+                ? 'Downloading this area…'
+                : areaDownloadStatus === 'success'
+                  ? 'Area downloaded for offline'
+                  : 'Download this area for offline'}
+            </ThemedText>
+          </Pressable>
+          {areaDownloadStatus === 'error' && (
+            <ThemedText type="small" themeColor="textSecondary">
+              Couldn't download this area — try again.
+            </ThemedText>
+          )}
+        </ThemedView>
+      )}
 
       <ThemedView style={styles.filterRow}>
         <CategoryChips
@@ -130,6 +186,14 @@ export function LocationExplorer({
 
       {mode === 'wiki' ? (
         <>
+          {isOffline && nearbyStatus === 'success' && (
+            <ThemedView style={[styles.offlineBanner, { backgroundColor: theme.backgroundSelected, borderColor: theme.accent }]}>
+              <Ionicons name="cloud-offline-outline" size={14} color={theme.accent} />
+              <ThemedText type="small" themeColor="textSecondary">
+                No connection — showing downloaded content for this area.
+              </ThemedText>
+            </ThemedView>
+          )}
           {nearbyStatus === 'loading' && (
             <ThemedView style={styles.notice}>
               <ActivityIndicator />
@@ -186,6 +250,27 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     gap: Spacing.two,
+  },
+  offlineRow: {
+    gap: Spacing.one,
+  },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: Spacing.one,
+    borderRadius: Spacing.five,
+    borderWidth: 1,
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.three,
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Spacing.three,
+    borderWidth: 1.5,
+    padding: Spacing.two,
   },
   notice: {
     padding: Spacing.three,
