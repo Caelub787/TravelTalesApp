@@ -23,6 +23,7 @@ const CATEGORY_GUIDANCE: Record<CategoryId, string> = {
   architecture: "notable buildings, architectural styles, landmarks, or design history nearby",
   legends: "folklore, myths, ghost stories, or local legends associated with this area (clearly labeled as legend, not verified fact, but the existence and origin of the legend itself should be sourced)",
   people: "notable people who were born, lived, worked, or are otherwise historically tied to this specific area",
+  attractions: "notable attractions, landmarks, scenic lookouts, viewpoints, or other things worth visiting nearby, and what makes each one worth the stop",
   general: "the single most interesting, well-documented thing about this exact spot, in any category — pick whatever is most noteworthy rather than covering everything shallowly",
 };
 
@@ -33,6 +34,7 @@ const CATEGORY_SEARCH_HINT: Record<CategoryId, string> = {
   architecture: "architecture and landmarks",
   legends: "legends and folklore",
   people: "notable people",
+  attractions: "top attractions and things to do",
   general: "interesting facts and recent news",
 };
 

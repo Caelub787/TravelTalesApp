@@ -56,6 +56,8 @@ export interface NearbyArticle {
   url: string;
   snippet: string;
   distanceMeters: number;
+  latitude: number;
+  longitude: number;
 }
 
 export interface NearbyArticlesResponse {

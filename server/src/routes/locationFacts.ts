@@ -3,7 +3,7 @@ import { fetchLocationFacts } from "../services/groqClient.js";
 import type { CategoryId, LocationFactsRequest } from "../types.js";
 import { describeAiError } from "../utils/errorMessage.js";
 
-const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "architecture", "legends", "people", "general"];
+const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "architecture", "legends", "people", "attractions", "general"];
 
 export const locationFactsRouter = Router();
 

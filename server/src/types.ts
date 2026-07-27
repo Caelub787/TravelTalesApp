@@ -5,6 +5,7 @@ export type CategoryId =
   | "architecture"
   | "legends"
   | "people"
+  | "attractions"
   | "general";
 
 export interface LocationFactsRequest {
@@ -53,6 +54,8 @@ export interface NearbyArticle {
   url: string;
   snippet: string;
   distanceMeters: number;
+  latitude: number;
+  longitude: number;
 }
 
 export interface NearbyArticlesResponse {

@@ -11,6 +11,7 @@ const CATEGORY_KEYWORDS: Record<Exclude<CategoryId, 'general'>, string[]> = {
   architecture: ['building', 'architecture', 'tower', 'bridge', 'cathedral', 'designed', 'constructed', 'landmark', 'monument'],
   legends: ['legend', 'myth', 'folklore', 'ghost', 'haunted', 'supernatural', 'tale'],
   people: ['born', 'died', 'politician', 'artist', 'writer', 'athlete', 'musician', 'actor', 'scientist'],
+  attractions: ['attraction', 'landmark', 'tourist', 'scenic', 'viewpoint', 'lookout', 'overlook', 'vista', 'sightseeing', 'must-see'],
 };
 
 export function matchesCategory(text: string, category: CategoryId): boolean {

@@ -37,6 +37,7 @@ const CATEGORY_KEYWORDS: Record<Exclude<CategoryId, "general">, string[]> = {
   architecture: ["building", "architecture", "tower", "bridge", "cathedral", "designed", "constructed", "landmark", "monument"],
   legends: ["legend", "myth", "folklore", "ghost", "haunted", "supernatural", "tale"],
   people: ["born", "died", "politician", "artist", "writer", "athlete", "musician", "actor", "scientist"],
+  attractions: ["attraction", "landmark", "tourist", "scenic", "viewpoint", "lookout", "overlook", "vista", "sightseeing", "must-see"],
 };
 
 interface GeoSearchResult {
@@ -162,7 +163,21 @@ async function searchPageByTitle(query: string): Promise<GeoSearchResult | null>
   });
   const hit = data.query?.search?.[0];
   if (!hit) return null;
-  return { pageid: hit.pageid, title: hit.title, lat: 0, lon: 0 };
+
+  const coordData = await wikiFetch<{
+    query?: { pages?: Record<string, { coordinates?: { lat: number; lon: number }[] }> };
+  }>({
+    action: "query",
+    prop: "coordinates",
+    pageids: String(hit.pageid),
+  });
+  const coords = Object.values(coordData.query?.pages ?? {})[0]?.coordinates?.[0];
+  // Skip pages with no coordinates (e.g. some abstract/administrative articles) rather
+  // than folding one in with fabricated (0, 0) coordinates a "Get Directions" link could
+  // pick up.
+  if (!coords) return null;
+
+  return { pageid: hit.pageid, title: hit.title, lat: coords.lat, lon: coords.lon };
 }
 
 async function geosearchArea(
@@ -310,6 +325,8 @@ export async function fetchNearbyArticles(req: NearbyArticlesRequest): Promise<N
       url: extract.fullurl,
       snippet: extract.extract?.trim() ?? "",
       distanceMeters: Math.round(page.distanceMeters),
+      latitude: page.lat,
+      longitude: page.lon,
     });
   }
 

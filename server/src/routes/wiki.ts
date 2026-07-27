@@ -3,7 +3,7 @@ import { fetchNearbyArticles, fetchWikiLocationFacts, searchWikiAnswer } from ".
 import type { AskRequest, CategoryId, LocationFactsRequest, NearbyArticlesRequest } from "../types.js";
 import { errorMessage } from "../utils/errorMessage.js";
 
-const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "architecture", "legends", "people", "general"];
+const VALID_CATEGORIES: CategoryId[] = ["history", "culture", "nature", "architecture", "legends", "people", "attractions", "general"];
 
 export const wikiRouter = Router();
 

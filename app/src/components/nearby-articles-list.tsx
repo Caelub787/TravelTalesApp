@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
-import { ExternalLink } from '@/components/external-link';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CardShadow, Spacing } from '@/constants/theme';
+import { useArticleViewer } from '@/hooks/use-article-viewer';
 import { useTheme } from '@/hooks/use-theme';
 import type { NearbyArticlesResponse } from '@/services/api';
+import { openDirections } from '@/utils/open-directions';
 
 interface Props {
   result: NearbyArticlesResponse;
@@ -20,6 +21,7 @@ function formatDistance(meters: number): string {
 
 export function NearbyArticlesList({ result }: Props) {
   const theme = useTheme();
+  const { open } = useArticleViewer();
 
   if (result.articles.length === 0) {
     return (
@@ -38,8 +40,11 @@ export function NearbyArticlesList({ result }: Props) {
         {result.articles.length} nearby article{result.articles.length === 1 ? '' : 's'}
       </ThemedText>
       {result.articles.map((article, index) => (
-        <ExternalLink key={index} href={article.url as `${string}:${string}`} title={article.title}>
-          <ThemedView type="backgroundElement" style={[styles.row, { borderColor: theme.border, shadowColor: theme.text }]}>
+        <ThemedView
+          key={index}
+          type="backgroundElement"
+          style={[styles.row, { borderColor: theme.border, shadowColor: theme.text }]}>
+          <Pressable style={styles.rowMain} onPress={() => open(article.url, article.title)}>
             <ThemedView style={[styles.icon, { backgroundColor: theme.backgroundSelected }]}>
               <Ionicons name="document-text-outline" size={16} color={theme.accent} />
             </ThemedView>
@@ -60,8 +65,17 @@ export function NearbyArticlesList({ result }: Props) {
               </ThemedView>
             </ThemedView>
             <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
-          </ThemedView>
-        </ExternalLink>
+          </Pressable>
+          <Pressable
+            onPress={() => openDirections({ latitude: article.latitude, longitude: article.longitude })}
+            style={[styles.directionsButton, { borderColor: theme.border }]}
+            accessibilityLabel={`Get directions to ${article.title}`}>
+            <Ionicons name="navigate-outline" size={14} color={theme.accent} />
+            <ThemedText type="small" themeColor="accent">
+              Directions
+            </ThemedText>
+          </Pressable>
+        </ThemedView>
       ))}
     </ThemedView>
   );
@@ -83,13 +97,16 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderRadius: Spacing.three,
     borderWidth: 1,
     padding: Spacing.three,
     gap: Spacing.two,
     ...CardShadow,
+  },
+  rowMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   icon: {
     width: 36,
@@ -107,5 +124,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.half,
     marginTop: Spacing.half,
+  },
+  directionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: Spacing.half,
+    borderRadius: Spacing.five,
+    borderWidth: 1,
+    paddingVertical: Spacing.half,
+    paddingHorizontal: Spacing.two,
   },
 });

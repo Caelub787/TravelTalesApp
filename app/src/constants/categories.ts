@@ -1,7 +1,15 @@
 import type { ComponentProps } from 'react';
 import type { Ionicons } from '@expo/vector-icons';
 
-export type CategoryId = 'history' | 'culture' | 'nature' | 'architecture' | 'legends' | 'people' | 'general';
+export type CategoryId =
+  | 'history'
+  | 'culture'
+  | 'nature'
+  | 'architecture'
+  | 'legends'
+  | 'people'
+  | 'attractions'
+  | 'general';
 export type CategorySelection = CategoryId | 'all';
 
 export interface Category {
@@ -20,6 +28,7 @@ export const CATEGORIES: Category[] = [
   { id: 'architecture', label: 'Architecture', icon: 'business-outline' },
   { id: 'legends', label: 'Legends', icon: 'moon-outline' },
   { id: 'people', label: 'People', icon: 'person-outline' },
+  { id: 'attractions', label: 'Attractions', icon: 'camera-outline' },
 ];
 
 export const ALL_CATEGORY: Category = { id: 'all', label: 'All', icon: 'apps-outline' };

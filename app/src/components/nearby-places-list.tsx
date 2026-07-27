@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
 import { ExternalLink } from '@/components/external-link';
 import { ThemedText } from '@/components/themed-text';
@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { CardShadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { NearbyPlace, NearbyPlacesResponse } from '@/services/api';
+import { openDirections } from '@/utils/open-directions';
 
 interface Props {
   result: NearbyPlacesResponse;
@@ -49,8 +50,8 @@ export function NearbyPlacesList({ result }: Props) {
         {result.places.length} nearby destination{result.places.length === 1 ? '' : 's'} & lookouts
       </ThemedText>
       {result.places.map((place) => {
-        const body = (
-          <ThemedView type="backgroundElement" style={[styles.row, { borderColor: theme.border, shadowColor: theme.text }]}>
+        const info = (
+          <ThemedView style={styles.rowMain}>
             <ThemedView style={[styles.icon, { backgroundColor: theme.backgroundSelected }]}>
               <Ionicons name={iconFor(place.category)} size={16} color={theme.accent} />
             </ThemedView>
@@ -67,12 +68,28 @@ export function NearbyPlacesList({ result }: Props) {
           </ThemedView>
         );
 
-        return place.mapsUrl ? (
-          <ExternalLink key={place.id} href={place.mapsUrl as `${string}:${string}`} title={place.name}>
-            {body}
-          </ExternalLink>
-        ) : (
-          <ThemedView key={place.id}>{body}</ThemedView>
+        return (
+          <ThemedView
+            key={place.id}
+            type="backgroundElement"
+            style={[styles.row, { borderColor: theme.border, shadowColor: theme.text }]}>
+            {place.mapsUrl ? (
+              <ExternalLink href={place.mapsUrl as `${string}:${string}`} title={place.name}>
+                {info}
+              </ExternalLink>
+            ) : (
+              info
+            )}
+            <Pressable
+              onPress={() => openDirections({ latitude: place.latitude, longitude: place.longitude })}
+              style={[styles.directionsButton, { borderColor: theme.border }]}
+              accessibilityLabel={`Get directions to ${place.name}`}>
+              <Ionicons name="navigate-outline" size={14} color={theme.accent} />
+              <ThemedText type="small" themeColor="accent">
+                Directions
+              </ThemedText>
+            </Pressable>
+          </ThemedView>
         );
       })}
     </ThemedView>
@@ -84,13 +101,16 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderRadius: Spacing.three,
     borderWidth: 1,
     padding: Spacing.three,
     gap: Spacing.two,
     ...CardShadow,
+  },
+  rowMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   icon: {
     width: 36,
@@ -102,5 +122,15 @@ const styles = StyleSheet.create({
   rowBody: {
     flex: 1,
     gap: Spacing.half,
+  },
+  directionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: Spacing.half,
+    borderRadius: Spacing.five,
+    borderWidth: 1,
+    paddingVertical: Spacing.half,
+    paddingHorizontal: Spacing.two,
   },
 });
