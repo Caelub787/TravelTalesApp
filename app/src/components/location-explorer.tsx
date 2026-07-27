@@ -77,11 +77,11 @@ export function LocationExplorer({
     if (movedEnough || radiusChanged) {
       lastFetchedCoordsRef.current = coords;
       lastRadiusRef.current = radiusMiles;
-      fetchNearby(coords);
+      fetchNearby(coords, placeLabel);
     } else {
       lastRadiusRef.current = radiusMiles;
     }
-  }, [mode, coords, radiusMiles, fetchNearby]);
+  }, [mode, coords, radiusMiles, placeLabel, fetchNearby]);
 
   // Nearby destinations/lookouts show in both modes (not just Wiki), so they get their own,
   // simpler "moved enough" gate independent of the Wiki-only articles fetch above.
@@ -140,10 +140,13 @@ export function LocationExplorer({
     if (!coords) return;
     setAreaDownloadStatus('downloading');
     try {
-      const [label, response] = await Promise.all([
-        reverseGeocode(coords).catch(() => null),
-        fetchNearbyArticles({ latitude: coords.latitude, longitude: coords.longitude, radiusMiles }),
-      ]);
+      const label = await reverseGeocode(coords).catch(() => null);
+      const response = await fetchNearbyArticles({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        radiusMiles,
+        placeLabel: label ?? undefined,
+      });
       saveArea({
         id: `area-${Date.now()}`,
         center: coords,

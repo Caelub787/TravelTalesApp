@@ -86,9 +86,10 @@ async function gatherGroundingContext(
   latitude: number,
   longitude: number,
   radiusMiles: number,
-  searchQuery: string
+  searchQuery: string,
+  placeLabel?: string
 ): Promise<GroundingExcerpt[]> {
-  const wikiExcerpts = await fetchGroundingExcerpts(latitude, longitude, radiusMiles);
+  const wikiExcerpts = await fetchGroundingExcerpts(latitude, longitude, radiusMiles, placeLabel);
 
   let webExcerpts: GroundingExcerpt[] = [];
   try {
@@ -110,7 +111,7 @@ export async function fetchLocationFacts(req: LocationFactsRequest): Promise<Loc
   const fallbackLabel = placeLabel ?? `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 
   const searchQuery = `${fallbackLabel} ${CATEGORY_SEARCH_HINT[category]}`;
-  const excerpts = await gatherGroundingContext(latitude, longitude, radiusMiles ?? DEFAULT_RADIUS_MILES, searchQuery);
+  const excerpts = await gatherGroundingContext(latitude, longitude, radiusMiles ?? DEFAULT_RADIUS_MILES, searchQuery, placeLabel);
   if (excerpts.length === 0) return noVerifiedFacts(fallbackLabel);
 
   const systemPrompt = `You are a rigorous local guide for a live travel app called TravelTalesApp. Write about ${CATEGORY_GUIDANCE[category]}, using ONLY the numbered excerpts the user provides (a mix of Wikipedia and open-web search results) — never use outside knowledge or invent anything not directly supported by them.
@@ -151,7 +152,7 @@ export async function answerLocationQuestion(req: AskRequest): Promise<AskRespon
   const fallbackLabel = placeLabel ?? `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 
   const searchQuery = `${fallbackLabel} ${question}`;
-  const excerpts = await gatherGroundingContext(latitude, longitude, radiusMiles ?? DEFAULT_RADIUS_MILES, searchQuery);
+  const excerpts = await gatherGroundingContext(latitude, longitude, radiusMiles ?? DEFAULT_RADIUS_MILES, searchQuery, placeLabel);
   if (excerpts.length === 0) {
     return {
       question,

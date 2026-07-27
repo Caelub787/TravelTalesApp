@@ -19,7 +19,7 @@ export function useNearbyArticles() {
   const [isOffline, setIsOffline] = useState(false);
 
   const fetchNearby = useCallback(
-    async (coords: Coords) => {
+    async (coords: Coords, placeLabel?: string | null) => {
       setStatus('loading');
       setError(null);
       setIsOffline(false);
@@ -29,6 +29,7 @@ export function useNearbyArticles() {
           latitude: coords.latitude,
           longitude: coords.longitude,
           radiusMiles,
+          placeLabel: placeLabel ?? undefined,
         });
         setResult(response);
         setStatus('success');

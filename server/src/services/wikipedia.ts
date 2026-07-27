@@ -146,7 +146,31 @@ function milesToMeters(radiusMiles: number | undefined): number {
   return clamped * MILES_TO_METERS;
 }
 
-async function geosearchArea(latitude: number, longitude: number, radiusMiles: number | undefined): Promise<GeoSearchResultWithDistance[]> {
+// Pure coordinate-radius geosearch finds whatever happens to be geotagged nearest the
+// user's *exact* GPS point — for a large named place (a national park, a whole town) that
+// can easily be some minor stub article instead of the place's own overview article, since
+// Wikipedia geotags a location article at one representative point, not spread across its
+// full area. When a reverse-geocoded place name is available, look it up by title too and
+// fold it in at the top of the results so "what's nearby" reliably includes the place
+// you're actually standing in, not just whatever's closest by raw coordinate.
+async function searchPageByTitle(query: string): Promise<GeoSearchResult | null> {
+  const data = await wikiFetch<{ query?: { search?: { pageid: number; title: string }[] } }>({
+    action: "query",
+    list: "search",
+    srsearch: query,
+    srlimit: "1",
+  });
+  const hit = data.query?.search?.[0];
+  if (!hit) return null;
+  return { pageid: hit.pageid, title: hit.title, lat: 0, lon: 0 };
+}
+
+async function geosearchArea(
+  latitude: number,
+  longitude: number,
+  radiusMiles: number | undefined,
+  placeLabel?: string
+): Promise<GeoSearchResultWithDistance[]> {
   const radiusMeters = milesToMeters(radiusMiles);
   const perCallRadius = Math.min(radiusMeters, MAX_GEOSEARCH_RADIUS_METERS);
   const centers = buildSearchCenters(latitude, longitude, radiusMeters);
@@ -171,6 +195,19 @@ async function geosearchArea(latitude: number, longitude: number, radiusMiles: n
       if (distance <= radiusMeters) {
         byId.set(page.pageid, { ...page, distanceMeters: distance });
       }
+    }
+  }
+
+  if (placeLabel) {
+    try {
+      const named = await searchPageByTitle(placeLabel);
+      if (named && !byId.has(named.pageid)) {
+        byId.set(named.pageid, { ...named, distanceMeters: 0 });
+      } else if (named) {
+        byId.set(named.pageid, { ...byId.get(named.pageid)!, distanceMeters: 0 });
+      }
+    } catch (err) {
+      console.error("Named-place Wikipedia lookup failed, continuing with geosearch only:", err);
     }
   }
 
@@ -212,7 +249,7 @@ function toFact(page: ExtractResult): { text: string; source: FactSource } | nul
 export async function fetchWikiLocationFacts(req: LocationFactsRequest): Promise<LocationFactsResponse> {
   const { latitude, longitude, placeLabel, category, radiusMiles } = req;
 
-  const nearby = await geosearchArea(latitude, longitude, radiusMiles);
+  const nearby = await geosearchArea(latitude, longitude, radiusMiles, placeLabel);
   if (nearby.length === 0) {
     return {
       title: "Nothing nearby on Wikipedia",
@@ -258,9 +295,9 @@ export async function fetchWikiLocationFacts(req: LocationFactsRequest): Promise
 }
 
 export async function fetchNearbyArticles(req: NearbyArticlesRequest): Promise<NearbyArticlesResponse> {
-  const { latitude, longitude, radiusMiles } = req;
+  const { latitude, longitude, radiusMiles, placeLabel } = req;
 
-  const nearby = (await geosearchArea(latitude, longitude, radiusMiles)).slice(0, MAX_NEARBY_ARTICLES);
+  const nearby = (await geosearchArea(latitude, longitude, radiusMiles, placeLabel)).slice(0, MAX_NEARBY_ARTICLES);
   const extracts = await fetchExtracts(nearby.map((page) => page.pageid));
   const byId = new Map(extracts.map((page) => [page.pageid, page]));
 
@@ -386,9 +423,10 @@ const MAX_GROUNDING_EXCERPT_CHARS = 800;
 export async function fetchGroundingExcerpts(
   latitude: number,
   longitude: number,
-  radiusMiles: number | undefined
+  radiusMiles: number | undefined,
+  placeLabel?: string
 ): Promise<GroundingExcerpt[]> {
-  const nearby = (await geosearchArea(latitude, longitude, radiusMiles)).slice(0, MAX_GROUNDING_ARTICLES);
+  const nearby = (await geosearchArea(latitude, longitude, radiusMiles, placeLabel)).slice(0, MAX_GROUNDING_ARTICLES);
   const extracts = await fetchExtracts(
     nearby.map((page) => page.pageid),
     { fullIntro: true }

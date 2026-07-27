@@ -71,7 +71,7 @@ wikiRouter.post("/wiki-search", async (req, res) => {
 });
 
 wikiRouter.post("/wiki-nearby", async (req, res) => {
-  const { latitude, longitude, radiusMiles } = req.body ?? {};
+  const { latitude, longitude, radiusMiles, placeLabel } = req.body ?? {};
 
   if (typeof latitude !== "number" || typeof longitude !== "number") {
     res.status(400).json({ error: "latitude and longitude must be numbers" });
@@ -82,6 +82,7 @@ wikiRouter.post("/wiki-nearby", async (req, res) => {
     latitude,
     longitude,
     radiusMiles: parseRadiusMiles(radiusMiles),
+    placeLabel: typeof placeLabel === "string" ? placeLabel : undefined,
   };
 
   try {

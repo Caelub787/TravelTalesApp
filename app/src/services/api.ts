@@ -48,6 +48,7 @@ export interface NearbyArticlesRequest {
   latitude: number;
   longitude: number;
   radiusMiles?: number;
+  placeLabel?: string;
 }
 
 export interface NearbyArticle {
@@ -133,16 +134,17 @@ function requireApiUrl(): string {
   return API_URL;
 }
 
-// A trip download can fire dozens to hundreds of these calls, one per sampled stop —
-// without a cap, one slow/hanging response stalls the entire download.
-const REQUEST_TIMEOUT_MS = 25000;
+// Story Mode/Ask requests chain Wikipedia + a live web search + an LLM call server-side
+// and can legitimately take a while (especially on a cold-started free-tier host over
+// cellular) — the server already bounds every one of those internal calls with its own
+// timeout, so it always eventually responds; a client-side cap here would just cancel
+// slow-but-working requests. Deliberately no timeout on these client calls.
 
 async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
   const response = await fetch(`${requireApiUrl()}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {
@@ -159,7 +161,7 @@ async function getJson<TResponse>(path: string, params: Record<string, string>):
     url.searchParams.set(key, value);
   }
 
-  const response = await fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+  const response = await fetch(url);
   if (!response.ok) {
     const responseBody = await response.json().catch(() => null);
     throw new Error(responseBody?.error ?? `Request failed with status ${response.status}`);

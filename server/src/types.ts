@@ -45,6 +45,7 @@ export interface NearbyArticlesRequest {
   latitude: number;
   longitude: number;
   radiusMiles?: number;
+  placeLabel?: string;
 }
 
 export interface NearbyArticle {
