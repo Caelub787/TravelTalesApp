@@ -12,6 +12,9 @@ import type {
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 const DEFAULT_RADIUS_MILES = 10;
+// A trip download can call this once per sampled stop (dozens to hundreds on a long
+// route) — without a cap, one slow completion stalls the entire download.
+const GROQ_TIMEOUT_MS = 20000;
 
 const CATEGORY_GUIDANCE: Record<CategoryId, string> = {
   history: "significant historical events, founding dates, wars, or turning points tied to this exact spot",
@@ -53,6 +56,7 @@ async function groqChat(systemPrompt: string, userMessage: string): Promise<stri
       response_format: { type: "json_object" },
       temperature: 0.6,
     }),
+    signal: AbortSignal.timeout(GROQ_TIMEOUT_MS),
   });
 
   if (!response.ok) {

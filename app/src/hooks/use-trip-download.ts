@@ -9,6 +9,13 @@ export type TripDownloadStatus = 'idle' | 'downloading' | 'error' | 'success';
 
 const STOP_RADIUS_MILES = 2;
 const MAX_ARTICLES_PER_STOP = 10;
+// A full AI story (Wikipedia + live web search + an LLM generation, same as Story Mode)
+// costs several seconds per call — generating one for every ~3-mile sample would turn a
+// long trip's download into a multi-hour job for little added value (consecutive 3-mile
+// samples along open highway are rarely distinct enough to need their own narrative).
+// Every 4th sampled stop (~12 miles apart) still gets one; every stop still gets its
+// (much cheaper) Wikipedia articles and nearby places at full density.
+const STORY_SAMPLE_STRIDE = 4;
 // A long trip can sample 100+ stops, each firing a couple of Wikipedia requests back to
 // back. Pace between stops, and if one gets rate-limited, back off harder (and keep that
 // slower pace for the rest of the download, not just the one stop) rather than easing back
@@ -67,24 +74,28 @@ export function useTripDownload() {
       if (!stopSucceeded) failedStops += 1;
 
       // Places (Google Places) and the AI-written story are enrichments on top of the core
-      // Wikipedia articles above — attempted once per stop, best-effort. A failure here
-      // (no Places key configured, AI quota hit, etc.) doesn't count against the stop or
-      // trigger the same retry/backoff, since re-hammering an AI rate limit across a
-      // 100-stop trip would make things worse, not better; the stop just ends up with
-      // articles only, same as before this feature existed.
+      // Wikipedia articles above — attempted once per stop (story only every Nth, see
+      // STORY_SAMPLE_STRIDE), best-effort. A failure here (no Places key configured, AI
+      // quota hit, timeout, etc.) doesn't count against the stop or trigger the same
+      // retry/backoff, since re-hammering a slow/rate-limited AI call across a 100-stop
+      // trip would make things worse, not better; the stop just ends up with articles
+      // only, same as before this feature existed.
+      const shouldGenerateStory = i % STORY_SAMPLE_STRIDE === 0;
       const [places, story] = await Promise.all([
         fetchNearbyPlaces({ latitude: sample.latitude, longitude: sample.longitude, radiusMiles: STOP_RADIUS_MILES })
           .then((response) => response.places)
           .catch(() => []),
-        fetchLocationFacts({
-          latitude: sample.latitude,
-          longitude: sample.longitude,
-          placeLabel: placeLabel ?? undefined,
-          category: 'general',
-          radiusMiles: STOP_RADIUS_MILES,
-        })
-          .then((response) => (response.noVerifiedFactsFound ? null : response))
-          .catch(() => null),
+        shouldGenerateStory
+          ? fetchLocationFacts({
+              latitude: sample.latitude,
+              longitude: sample.longitude,
+              placeLabel: placeLabel ?? undefined,
+              category: 'general',
+              radiusMiles: STOP_RADIUS_MILES,
+            })
+              .then((response) => (response.noVerifiedFactsFound ? null : response))
+              .catch(() => null)
+          : Promise.resolve(null),
       ]);
 
       stops.push({

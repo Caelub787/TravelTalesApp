@@ -3,6 +3,9 @@ import type { AddressSearchResponse, ReverseGeocodeRequest, ReverseGeocodeRespon
 const NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse";
 const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 const USER_AGENT = "TravelTalesApp/1.0 (personal project; contact via GitHub)";
+// A trip download fires one of these per sampled stop (dozens to hundreds on a long
+// route) — without a cap, one slow/hanging response stalls the entire download.
+const REQUEST_TIMEOUT_MS = 10000;
 
 interface NominatimAddress {
   city?: string;
@@ -36,7 +39,10 @@ export async function reverseGeocode(req: ReverseGeocodeRequest): Promise<Revers
   url.searchParams.set("addressdetails", "1");
   url.searchParams.set("zoom", "14");
 
-  const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+  const response = await fetch(url, {
+    headers: { "User-Agent": USER_AGENT },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
   if (!response.ok) {
     throw new Error(`Nominatim request failed with status ${response.status}`);
   }
@@ -57,7 +63,10 @@ export async function searchAddress(query: string): Promise<AddressSearchRespons
   url.searchParams.set("q", query);
   url.searchParams.set("limit", "5");
 
-  const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+  const response = await fetch(url, {
+    headers: { "User-Agent": USER_AGENT },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
   if (!response.ok) {
     throw new Error(`Nominatim search request failed with status ${response.status}`);
   }

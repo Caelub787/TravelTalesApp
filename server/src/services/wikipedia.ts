@@ -28,6 +28,7 @@ const MAX_NEARBY_ARTICLES = 40;
 // instead of aborting on the first transient rate limit.
 const MAX_RATE_LIMIT_RETRIES = 4;
 const RATE_LIMIT_BASE_DELAY_MS = 500;
+const REQUEST_TIMEOUT_MS = 15000;
 
 const CATEGORY_KEYWORDS: Record<Exclude<CategoryId, "general">, string[]> = {
   history: ["history", "historic", "founded", "war", "battle", "century", "established", "colonial", "ancient"],
@@ -68,7 +69,10 @@ async function wikiFetch<T>(params: Record<string, string>): Promise<T> {
   }
 
   for (let attempt = 0; ; attempt++) {
-    const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+    const response = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
     if (response.ok) {
       return response.json() as Promise<T>;
     }

@@ -5,6 +5,9 @@ const METERS_PER_MILE = 1609.34;
 const MAX_RADIUS_METERS = 50000; // Google Places' own hard cap for nearby search.
 const DEFAULT_RADIUS_MILES = 5;
 const MAX_RESULTS = 12;
+// A trip download can call this once per sampled stop (dozens to hundreds on a long
+// route) — without a cap, one slow response stalls the entire download.
+const REQUEST_TIMEOUT_MS = 10000;
 
 // Place types that read as "destinations, lookouts, and fun things to do" rather than
 // everyday errands (gas stations, banks, etc.) — biased toward scenic/historical/cultural
@@ -79,6 +82,7 @@ export async function fetchNearbyPlaces(req: NearbyPlacesRequest): Promise<Nearb
         },
       },
     }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {

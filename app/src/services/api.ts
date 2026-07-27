@@ -127,17 +127,22 @@ export interface AddressSearchResponse {
 function requireApiUrl(): string {
   if (!API_URL) {
     throw new Error(
-      'EXPO_PUBLIC_API_URL is not set. Point it at your running TravelTales server (see README).'
+      'EXPO_PUBLIC_API_URL is not set. Point it at your running TravelTalesApp server (see README).'
     );
   }
   return API_URL;
 }
+
+// A trip download can fire dozens to hundreds of these calls, one per sampled stop —
+// without a cap, one slow/hanging response stalls the entire download.
+const REQUEST_TIMEOUT_MS = 25000;
 
 async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
   const response = await fetch(`${requireApiUrl()}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {
@@ -154,7 +159,7 @@ async function getJson<TResponse>(path: string, params: Record<string, string>):
     url.searchParams.set(key, value);
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
   if (!response.ok) {
     const responseBody = await response.json().catch(() => null);
     throw new Error(responseBody?.error ?? `Request failed with status ${response.status}`);

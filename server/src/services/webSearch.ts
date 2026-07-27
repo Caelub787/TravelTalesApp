@@ -3,6 +3,9 @@
 // the open web (not just Wikipedia) without requiring another account/API key/bill.
 const SEARCH_URL = "https://html.duckduckgo.com/html/";
 const USER_AGENT = "Mozilla/5.0 (compatible; TravelTalesApp/1.0; +personal project)";
+// A trip download can call this once per sampled stop (dozens to hundreds on a long
+// route) — without a cap, one slow response stalls the entire download.
+const REQUEST_TIMEOUT_MS = 10000;
 
 export interface WebSearchResult {
   title: string;
@@ -38,7 +41,10 @@ export async function searchWeb(query: string, maxResults = 5): Promise<WebSearc
   const url = new URL(SEARCH_URL);
   url.searchParams.set("q", query);
 
-  const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+  const response = await fetch(url, {
+    headers: { "User-Agent": USER_AGENT },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
   if (!response.ok) {
     throw new Error(`Web search request failed with status ${response.status}`);
   }
