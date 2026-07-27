@@ -37,14 +37,14 @@ export default function HomeScreen() {
           <ThemedView style={styles.header}>
             <Ionicons name="compass" size={26} color={theme.accent} />
             <ThemedText type="title" style={styles.appTitle}>
-              TravelTalesApp
+              Travel Tales
             </ThemedText>
           </ThemedView>
 
           {permission === 'denied' && (
             <ThemedView type="backgroundElement" style={styles.notice}>
               <ThemedText>
-                TravelTalesApp needs location access to tell you what's around you. Enable location
+                Travel Tales needs location access to tell you what's around you. Enable location
                 permissions for this app in your device settings, then reopen it.
               </ThemedText>
             </ThemedView>

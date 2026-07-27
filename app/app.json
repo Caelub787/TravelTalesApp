@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "TravelTalesApp",
+    "name": "Travel Tales",
     "slug": "traveltalesapp",
     "owner": "calebmreed",
     "version": "1.0.0",
@@ -15,7 +15,6 @@
       "url": "https://u.expo.dev/5a21cd88-024e-41cb-b1a5-3ef0b74c86de"
     },
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.traveltalesapp.app",
       "config": {
         "googleMapsApiKey": "AIzaSyA5Zgtw92-CnoRRknqjckk1L17m8MEELHA"
@@ -24,7 +23,7 @@
     "android": {
       "package": "com.traveltalesapp.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#4A4A4C",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -46,13 +45,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "TravelTalesApp uses your location to find real facts and stories about the place you're currently standing in."
+          "locationWhenInUsePermission": "Travel Tales uses your location to find real facts and stories about the place you're currently standing in."
         }
       ],
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#4A4A4C",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
@@ -60,8 +59,8 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "TravelTalesApp uses your microphone to let you ask questions about where you are out loud.",
-          "speechRecognitionPermission": "TravelTalesApp uses speech recognition to turn your spoken question into text."
+          "microphonePermission": "Travel Tales uses your microphone to let you ask questions about where you are out loud.",
+          "speechRecognitionPermission": "Travel Tales uses speech recognition to turn your spoken question into text."
         }
       ]
     ],
