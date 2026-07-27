@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -49,7 +48,14 @@ export function ArticleViewerModal() {
           )}
 
           {article && (!wiki || showRaw) && (
-            <WebView key={article.url} source={{ uri: article.url }} style={styles.webview} />
+            <iframe
+              key={article.url}
+              src={article.url}
+              title={article.title ?? 'Source'}
+              referrerPolicy="no-referrer"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              style={{ flex: 1, width: '100%', height: '100%', border: 'none' }}
+            />
           )}
         </SafeAreaView>
       </ThemedView>
@@ -88,8 +94,5 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.two,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  webview: {
-    flex: 1,
   },
 });

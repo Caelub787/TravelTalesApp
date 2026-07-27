@@ -11,6 +11,7 @@ import { CardShadow, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useArticleHistory } from '@/hooks/use-article-history';
 import { useArticleViewer } from '@/hooks/use-article-viewer';
 import { useOfflineAreas } from '@/hooks/use-offline-areas';
+import { useOfflineArticles } from '@/hooks/use-offline-articles';
 import { useSavedItems } from '@/hooks/use-saved-items';
 import { useTheme } from '@/hooks/use-theme';
 import { formatRelativeTime } from '@/utils/format-time';
@@ -21,6 +22,7 @@ export default function SavedScreen() {
   const { items } = useSavedItems();
   const { items: history, clear: clearHistory } = useArticleHistory();
   const { areas, deleteArea } = useOfflineAreas();
+  const { articles: offlineArticles, deleteArticle } = useOfflineArticles();
   const { open } = useArticleViewer();
   const theme = useTheme();
   const [tab, setTab] = useState<Tab>('saved');
@@ -40,7 +42,7 @@ export default function SavedScreen() {
               [
                 { id: 'saved' as const, label: 'Saved', icon: 'bookmark-outline' as const },
                 { id: 'history' as const, label: 'History', icon: 'time-outline' as const },
-                { id: 'offline' as const, label: 'Offline areas', icon: 'cloud-download-outline' as const },
+                { id: 'offline' as const, label: 'Offline content', icon: 'cloud-download-outline' as const },
               ]
             ).map((option) => {
               const selected = option.id === tab;
@@ -126,6 +128,7 @@ export default function SavedScreen() {
 
           {tab === 'offline' && (
             <>
+              <ThemedText type="smallBold">Downloaded areas</ThemedText>
               {areas.length === 0 && (
                 <ThemedView style={styles.emptyState}>
                   <Ionicons name="cloud-download-outline" size={32} color={theme.textSecondary} />
@@ -157,6 +160,41 @@ export default function SavedScreen() {
                     <Ionicons name="trash-outline" size={18} color={theme.textSecondary} />
                   </Pressable>
                 </ThemedView>
+              ))}
+
+              <ThemedText type="smallBold" style={styles.sectionSpacing}>
+                Downloaded articles
+              </ThemedText>
+              {offlineArticles.length === 0 && (
+                <ThemedView style={styles.emptyState}>
+                  <Ionicons name="document-text-outline" size={32} color={theme.textSecondary} />
+                  <ThemedText themeColor="textSecondary">
+                    No individually downloaded articles yet — open any article and tap
+                    "Download for offline" to keep just that one for later.
+                  </ThemedText>
+                </ThemedView>
+              )}
+              {offlineArticles.map((article) => (
+                <Pressable key={article.url} onPress={() => open(article.url, article.title)}>
+                  <ThemedView
+                    type="backgroundElement"
+                    style={[styles.areaRow, { borderColor: theme.border, shadowColor: theme.text }]}>
+                    <ThemedView style={[styles.historyIcon, { backgroundColor: theme.backgroundSelected }]}>
+                      <Ionicons name="document-text-outline" size={16} color={theme.accent} />
+                    </ThemedView>
+                    <ThemedView style={styles.historyBody}>
+                      <ThemedText type="smallBold" numberOfLines={1}>
+                        {article.title}
+                      </ThemedText>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        downloaded {formatRelativeTime(article.downloadedAt)}
+                      </ThemedText>
+                    </ThemedView>
+                    <Pressable onPress={() => deleteArticle(article.url)}>
+                      <Ionicons name="trash-outline" size={18} color={theme.textSecondary} />
+                    </Pressable>
+                  </ThemedView>
+                </Pressable>
               ))}
             </>
           )}
@@ -205,6 +243,9 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     alignSelf: 'flex-end',
+  },
+  sectionSpacing: {
+    marginTop: Spacing.two,
   },
   historyRow: {
     flexDirection: 'row',
