@@ -89,9 +89,10 @@ async function gatherGroundingContext(
   longitude: number,
   radiusMiles: number,
   searchQuery: string,
-  placeLabel?: string
+  placeLabel?: string,
+  category?: CategoryId
 ): Promise<GroundingExcerpt[]> {
-  const wikiExcerpts = await fetchGroundingExcerpts(latitude, longitude, radiusMiles, placeLabel);
+  const wikiExcerpts = await fetchGroundingExcerpts(latitude, longitude, radiusMiles, placeLabel, category);
 
   let webExcerpts: GroundingExcerpt[] = [];
   try {
@@ -113,7 +114,7 @@ export async function fetchLocationFacts(req: LocationFactsRequest): Promise<Loc
   const fallbackLabel = placeLabel ?? `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 
   const searchQuery = `${fallbackLabel} ${CATEGORY_SEARCH_HINT[category]}`;
-  const excerpts = await gatherGroundingContext(latitude, longitude, radiusMiles ?? DEFAULT_RADIUS_MILES, searchQuery, placeLabel);
+  const excerpts = await gatherGroundingContext(latitude, longitude, radiusMiles ?? DEFAULT_RADIUS_MILES, searchQuery, placeLabel, category);
   if (excerpts.length === 0) return noVerifiedFacts(fallbackLabel);
 
   const systemPrompt = `You are a rigorous local guide for a live travel app called TravelTalesApp. Write about ${CATEGORY_GUIDANCE[category]}, using ONLY the numbered excerpts the user provides (a mix of Wikipedia and open-web search results) — never use outside knowledge or invent anything not directly supported by them.

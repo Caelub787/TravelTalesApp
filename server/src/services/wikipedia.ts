@@ -429,6 +429,12 @@ export interface GroundingExcerpt {
 }
 
 const MAX_GROUNDING_ARTICLES = 5;
+// When a category is given, cast a wider net before narrowing down to
+// MAX_GROUNDING_ARTICLES, so there's an actual pool to filter by relevance from — without
+// this, "grounding" was always just the 5 physically nearest articles regardless of which
+// category was requested, so asking for History could just as easily hand the AI 5 nearby
+// articles about nature or culture, since Wikipedia's geosearch has no concept of topic.
+const MAX_GROUNDING_CANDIDATE_POOL = 20;
 // Keeps the combined prompt (Wikipedia + web excerpts, per grounding request) well within
 // free-tier tokens-per-minute limits — a handful of uncapped full intros for busy
 // locations was easily large enough to trip Groq's free-tier rate limit on a single call.
@@ -436,26 +442,38 @@ const MAX_GROUNDING_EXCERPT_CHARS = 800;
 
 // Real, verifiable Wikipedia text for Story Mode's AI to write from — grounding it in
 // actual nearby articles instead of the model's own (unverifiable, possibly invented)
-// knowledge, and without needing any provider's built-in web-search tool.
+// knowledge, and without needing any provider's built-in web-search tool. When a category
+// is given, candidates are filtered/prioritized by the same keyword matching
+// fetchWikiLocationFacts already uses, falling back to nearest-by-distance only if nothing
+// nearby actually matches that category.
 export async function fetchGroundingExcerpts(
   latitude: number,
   longitude: number,
   radiusMiles: number | undefined,
-  placeLabel?: string
+  placeLabel?: string,
+  category?: CategoryId
 ): Promise<GroundingExcerpt[]> {
-  const nearby = (await geosearchArea(latitude, longitude, radiusMiles, placeLabel)).slice(0, MAX_GROUNDING_ARTICLES);
+  const wantsCategory = category && category !== "general";
+  const poolSize = wantsCategory ? MAX_GROUNDING_CANDIDATE_POOL : MAX_GROUNDING_ARTICLES;
+  const nearby = (await geosearchArea(latitude, longitude, radiusMiles, placeLabel)).slice(0, poolSize);
   const extracts = await fetchExtracts(
     nearby.map((page) => page.pageid),
     { fullIntro: true }
   );
   const byId = new Map(extracts.map((page) => [page.pageid, page]));
 
-  const excerpts: GroundingExcerpt[] = [];
-  for (const page of nearby) {
-    const extract = byId.get(page.pageid);
-    if (!extract?.extract || !extract.fullurl) continue;
-    const text = extract.extract.trim().slice(0, MAX_GROUNDING_EXCERPT_CHARS);
-    excerpts.push({ title: extract.title, text, url: extract.fullurl });
-  }
-  return excerpts;
+  const ordered = nearby
+    .map((page) => byId.get(page.pageid))
+    .filter((page): page is ExtractResult => Boolean(page?.extract && page.fullurl));
+
+  const relevant = wantsCategory
+    ? ordered.filter((page) => matchesCategory(`${page.title} ${page.extract}`, category!))
+    : ordered;
+  const chosen = (relevant.length > 0 ? relevant : ordered).slice(0, MAX_GROUNDING_ARTICLES);
+
+  return chosen.map((page) => ({
+    title: page.title,
+    text: page.extract!.trim().slice(0, MAX_GROUNDING_EXCERPT_CHARS),
+    url: page.fullurl!,
+  }));
 }
