@@ -12,8 +12,6 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   configured: boolean;
-  signUpWithEmail: (email: string, password: string) => Promise<string | null>;
-  signInWithEmail: (email: string, password: string) => Promise<string | null>;
   signInWithGoogle: () => Promise<string | null>;
   signOut: () => Promise<void>;
 }
@@ -39,16 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession);
     });
     return () => subscription.unsubscribe();
-  }, []);
-
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return error?.message ?? null;
-  }, []);
-
-  const signInWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error?.message ?? null;
   }, []);
 
   // Supabase hands back a browser URL to visit; expo-web-browser opens it as an in-app
@@ -93,8 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: session?.user ?? null,
         loading,
         configured: isSupabaseConfigured,
-        signUpWithEmail,
-        signInWithEmail,
         signInWithGoogle,
         signOut,
       }}>
