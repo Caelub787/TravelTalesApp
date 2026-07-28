@@ -1,25 +1,27 @@
-import { supabase } from '@/services/supabase';
+import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+
+import { db } from '@/services/firebase';
 
 export type AttachmentType = 'trip' | 'article' | 'story' | 'answer';
 
-// Conversations are keyed by an ordered pair so both people always land on the same row
-// regardless of who opens/shares first.
-export function pairIds(a: string, b: string): [string, string] {
-  return a < b ? [a, b] : [b, a];
+// Conversations (like friendships, see hooks/use-friends.ts) use a deterministic ID built
+// from both people's uids — sorted so the pair always maps to the same document regardless
+// of who opens/shares first.
+export function conversationId(a: string, b: string): string {
+  return [a, b].sort().join('_');
 }
 
 export async function getOrCreateConversationId(myId: string, friendId: string): Promise<string | null> {
-  const [userA, userB] = pairIds(myId, friendId);
-
-  const { data: existing } = await supabase.from('conversations').select('id').eq('user_a', userA).eq('user_b', userB).maybeSingle();
-  if (existing?.id) return existing.id;
-
-  const { data: created, error } = await supabase.from('conversations').insert({ user_a: userA, user_b: userB }).select('id').single();
-  if (!error && created) return created.id;
-
-  // Likely a concurrent insert from the other person opening/sharing at the same moment.
-  const { data: retry } = await supabase.from('conversations').select('id').eq('user_a', userA).eq('user_b', userB).maybeSingle();
-  return retry?.id ?? null;
+  const id = conversationId(myId, friendId);
+  const ref = doc(db, 'conversations', id);
+  const existing = await getDoc(ref);
+  if (!existing.exists()) {
+    await setDoc(ref, {
+      participants: [myId, friendId],
+      createdAt: serverTimestamp(),
+    });
+  }
+  return id;
 }
 
 export async function sendSharedAttachment(
@@ -29,15 +31,19 @@ export async function sendSharedAttachment(
   attachment: unknown,
   note?: string
 ): Promise<string | null> {
-  const conversationId = await getOrCreateConversationId(myId, friendId);
-  if (!conversationId) return "Couldn't start a conversation with that friend";
+  const id = await getOrCreateConversationId(myId, friendId);
+  if (!id) return "Couldn't start a conversation with that friend";
 
-  const { error } = await supabase.from('messages').insert({
-    conversation_id: conversationId,
-    sender_id: myId,
-    body: note?.trim() || null,
-    attachment_type: attachmentType,
-    attachment,
-  });
-  return error?.message ?? null;
+  try {
+    await addDoc(collection(db, 'conversations', id, 'messages'), {
+      senderId: myId,
+      body: note?.trim() || null,
+      attachmentType,
+      attachment,
+      createdAt: serverTimestamp(),
+    });
+    return null;
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err);
+  }
 }

@@ -1,41 +1,27 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, type Timestamp } from 'firebase/firestore';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
-import { supabase } from '@/services/supabase';
+import { db } from '@/services/firebase';
 import { getOrCreateConversationId, type AttachmentType } from '@/utils/conversations';
 
 export type { AttachmentType };
 
 export interface ChatMessage {
   id: string;
-  conversationId: string;
   senderId: string;
   body: string | null;
   attachmentType: AttachmentType | null;
   attachment: unknown;
-  createdAt: string;
+  createdAt: number;
 }
 
-interface MessageRow {
-  id: string;
-  conversation_id: string;
-  sender_id: string;
+interface MessageDoc {
+  senderId: string;
   body: string | null;
-  attachment_type: AttachmentType | null;
+  attachmentType: AttachmentType | null;
   attachment: unknown;
-  created_at: string;
-}
-
-function mapRow(row: MessageRow): ChatMessage {
-  return {
-    id: row.id,
-    conversationId: row.conversation_id,
-    senderId: row.sender_id,
-    body: row.body,
-    attachmentType: row.attachment_type,
-    attachment: row.attachment,
-    createdAt: row.created_at,
-  };
+  createdAt: Timestamp | null;
 }
 
 export function useConversation(friendId: string | undefined) {
@@ -43,16 +29,15 @@ export function useConversation(friendId: string | undefined) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!user || !friendId) return;
     let cancelled = false;
+    let unsubscribe: (() => void) | null = null;
 
-    async function setup() {
+    (async () => {
       setLoading(true);
-      const id = await getOrCreateConversationId(user!.id, friendId!);
-
+      const id = await getOrCreateConversationId(user.uid, friendId);
       if (cancelled || !id) {
         setLoading(false);
         return;
@@ -60,64 +45,46 @@ export function useConversation(friendId: string | undefined) {
 
       setConversationId(id);
 
-      const { data: rows } = await supabase
-        .from('messages')
-        .select('id, conversation_id, sender_id, body, attachment_type, attachment, created_at')
-        .eq('conversation_id', id)
-        .order('created_at', { ascending: true })
-        .returns<MessageRow[]>();
-
-      if (!cancelled) {
-        setMessages((rows ?? []).map(mapRow));
+      const messagesQuery = query(collection(db, 'conversations', id, 'messages'), orderBy('createdAt', 'asc'));
+      unsubscribe = onSnapshot(messagesQuery, (snap) => {
+        setMessages(
+          snap.docs.map((docSnap) => {
+            const data = docSnap.data() as MessageDoc;
+            return {
+              id: docSnap.id,
+              senderId: data.senderId,
+              body: data.body,
+              attachmentType: data.attachmentType,
+              attachment: data.attachment,
+              createdAt: data.createdAt?.toMillis() ?? Date.now(),
+            };
+          })
+        );
         setLoading(false);
-      }
-
-      const channel = supabase
-        .channel(`messages:${id}`)
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${id}` },
-          (payload) => {
-            const row = mapRow(payload.new as MessageRow);
-            setMessages((prev) => (prev.some((message) => message.id === row.id) ? prev : [...prev, row]));
-          }
-        )
-        .subscribe();
-      channelRef.current = channel;
-    }
-
-    setup();
+      });
+    })();
 
     return () => {
       cancelled = true;
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      unsubscribe?.();
     };
   }, [user, friendId]);
 
   const sendMessage = useCallback(
     async (body: string | null, attachmentType?: AttachmentType, attachment?: unknown): Promise<string | null> => {
-      if (!user || !conversationId) return 'Not ready yet — try again in a moment';
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
+      if (!conversationId) return 'Not ready yet — try again in a moment';
+      try {
+        await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
+          senderId: user!.uid,
           body,
-          attachment_type: attachmentType ?? null,
+          attachmentType: attachmentType ?? null,
           attachment: attachment ?? null,
-        })
-        .select('id, conversation_id, sender_id, body, attachment_type, attachment, created_at')
-        .single<MessageRow>();
-
-      if (error) return error.message;
-      if (data) {
-        const row = mapRow(data);
-        setMessages((prev) => (prev.some((message) => message.id === row.id) ? prev : [...prev, row]));
+          createdAt: serverTimestamp(),
+        });
+        return null;
+      } catch (err) {
+        return err instanceof Error ? err.message : String(err);
       }
-      return null;
     },
     [user, conversationId]
   );

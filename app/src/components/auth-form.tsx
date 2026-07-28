@@ -19,7 +19,7 @@ export function AuthForm() {
       <ThemedView type="backgroundElement" style={[styles.notice, { borderColor: theme.border }]}>
         <Ionicons name="information-circle-outline" size={18} color={theme.textSecondary} />
         <ThemedText themeColor="textSecondary" style={styles.noticeText}>
-          Friends and messaging aren't set up yet — this needs a Supabase project connected
+          Friends and messaging aren't set up yet — this needs a Firebase project connected
           (see README).
         </ThemedText>
       </ThemedView>

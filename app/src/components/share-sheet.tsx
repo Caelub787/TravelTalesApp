@@ -39,7 +39,7 @@ export function ShareSheet({ visible, onClose, attachmentType, attachment }: Pro
     if (!user) return;
     setError(null);
     setSendingTo(friendId);
-    const result = await sendSharedAttachment(user.id, friendId, attachmentType, attachment, note);
+    const result = await sendSharedAttachment(user.uid, friendId, attachmentType, attachment, note);
     setSendingTo(null);
     if (result) {
       setError(result);
@@ -91,12 +91,12 @@ export function ShareSheet({ visible, onClose, attachmentType, attachment }: Pro
 
             {user &&
               friends.map((friend) => {
-                const busy = sendingTo === friend.profileId;
-                const done = sentTo === friend.profileId;
+                const busy = sendingTo === friend.uid;
+                const done = sentTo === friend.uid;
                 return (
                   <Pressable
                     key={friend.friendshipId}
-                    onPress={() => handleSend(friend.profileId)}
+                    onPress={() => handleSend(friend.uid)}
                     disabled={busy || done}
                     style={[styles.row, { borderColor: theme.border }]}>
                     <ThemedView style={[styles.avatar, { backgroundColor: theme.backgroundSelected }]}>

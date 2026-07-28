@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { collection, deleteDoc, doc, documentId, getDocs, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
-import { supabase } from '@/services/supabase';
+import { db } from '@/services/firebase';
 
 export interface FriendProfile {
-  profileId: string;
+  uid: string;
   email: string;
   displayName: string | null;
 }
@@ -17,17 +18,24 @@ export interface FriendRequest extends FriendProfile {
   friendshipId: string;
 }
 
-interface ProfileRow {
-  id: string;
-  email: string;
-  display_name: string | null;
+interface FriendshipData {
+  uidA: string;
+  uidB: string;
+  requestedBy: string;
+  status: 'pending' | 'accepted';
 }
 
-interface FriendshipRow {
-  id: string;
-  requester_id: string;
-  addressee_id: string;
-  status: 'pending' | 'accepted' | 'declined';
+interface UserDoc {
+  email: string;
+  displayName: string | null;
+}
+
+// Friendships (and conversations, see utils/conversations.ts) use a deterministic ID built
+// from both people's uids — sorted so the pair always maps to the same document regardless
+// of who acts first, which also gives free enforcement of "only one relationship per pair"
+// without needing a uniqueness constraint.
+export function friendshipId(a: string, b: string): string {
+  return [a, b].sort().join('_');
 }
 
 export function useFriends() {
@@ -37,96 +45,107 @@ export function useFriends() {
   const [outgoing, setOutgoing] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const refresh = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-
-    const { data: rows } = await supabase
-      .from('friendships')
-      .select('id, requester_id, addressee_id, status')
-      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
-      .returns<FriendshipRow[]>();
-
-    if (!rows) {
-      setLoading(false);
+  useEffect(() => {
+    if (!user) {
+      setFriends([]);
+      setIncoming([]);
+      setOutgoing([]);
       return;
     }
 
-    const otherIds = Array.from(new Set(rows.map((row) => (row.requester_id === user.id ? row.addressee_id : row.requester_id))));
-    let profileById = new Map<string, ProfileRow>();
-    if (otherIds.length > 0) {
-      const { data: profiles } = await supabase.from('profiles').select('id, email, display_name').in('id', otherIds).returns<ProfileRow[]>();
-      profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
-    }
+    setLoading(true);
+    let rowsA: (FriendshipData & { id: string })[] = [];
+    let rowsB: (FriendshipData & { id: string })[] = [];
 
-    const nextFriends: Friend[] = [];
-    const nextIncoming: FriendRequest[] = [];
-    const nextOutgoing: FriendRequest[] = [];
+    const apply = async () => {
+      const rows = [...rowsA, ...rowsB];
+      const otherUids = Array.from(new Set(rows.map((row) => (row.uidA === user.uid ? row.uidB : row.uidA))));
 
-    for (const row of rows) {
-      const isRequester = row.requester_id === user.id;
-      const other = profileById.get(isRequester ? row.addressee_id : row.requester_id);
-      if (!other) continue;
-      const entry = { friendshipId: row.id, profileId: other.id, email: other.email, displayName: other.display_name };
-      if (row.status === 'accepted') {
-        nextFriends.push(entry);
-      } else if (row.status === 'pending') {
-        (isRequester ? nextOutgoing : nextIncoming).push(entry);
+      const profileByUid = new Map<string, UserDoc>();
+      // Firestore's "in" filter caps at 30 values — plenty for a personal friends list.
+      if (otherUids.length > 0) {
+        const usersSnap = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', otherUids.slice(0, 30))));
+        usersSnap.forEach((docSnap) => profileByUid.set(docSnap.id, docSnap.data() as UserDoc));
       }
-    }
 
-    setFriends(nextFriends);
-    setIncoming(nextIncoming);
-    setOutgoing(nextOutgoing);
-    setLoading(false);
+      const nextFriends: Friend[] = [];
+      const nextIncoming: FriendRequest[] = [];
+      const nextOutgoing: FriendRequest[] = [];
+
+      for (const row of rows) {
+        const otherUid = row.uidA === user.uid ? row.uidB : row.uidA;
+        const profile = profileByUid.get(otherUid);
+        if (!profile) continue;
+        const entry = { friendshipId: row.id, uid: otherUid, email: profile.email, displayName: profile.displayName };
+        if (row.status === 'accepted') {
+          nextFriends.push(entry);
+        } else if (row.requestedBy === user.uid) {
+          nextOutgoing.push(entry);
+        } else {
+          nextIncoming.push(entry);
+        }
+      }
+
+      setFriends(nextFriends);
+      setIncoming(nextIncoming);
+      setOutgoing(nextOutgoing);
+      setLoading(false);
+    };
+
+    const unsubA = onSnapshot(query(collection(db, 'friendships'), where('uidA', '==', user.uid)), (snap) => {
+      rowsA = snap.docs.map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() as FriendshipData) }));
+      apply();
+    });
+    const unsubB = onSnapshot(query(collection(db, 'friendships'), where('uidB', '==', user.uid)), (snap) => {
+      rowsB = snap.docs.map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() as FriendshipData) }));
+      apply();
+    });
+
+    return () => {
+      unsubA();
+      unsubB();
+    };
   }, [user]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const sendRequest = async (email: string): Promise<string | null> => {
+    if (!user) return 'Not signed in';
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return 'Enter an email address';
+    if (trimmed === user.email?.toLowerCase()) return "That's your own email";
 
-  const sendRequest = useCallback(
-    async (email: string): Promise<string | null> => {
-      if (!user) return 'Not signed in';
-      const trimmed = email.trim().toLowerCase();
-      if (!trimmed) return 'Enter an email address';
-      if (trimmed === user.email?.toLowerCase()) return "That's your own email";
+    const matches = await getDocs(query(collection(db, 'users'), where('email', '==', trimmed)));
+    if (matches.empty) return "No Travel Tales user found with that email — they'll need to sign in first";
+    const targetUid = matches.docs[0]!.id;
 
-      const { data: target, error: findError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', trimmed)
-        .maybeSingle();
-      if (findError) return findError.message;
-      if (!target) return "No Travel Tales user found with that email — they'll need to sign up first";
+    const id = friendshipId(user.uid, targetUid);
+    const existing = await getDocs(query(collection(db, 'friendships'), where(documentId(), '==', id)));
+    if (!existing.empty) return 'Already friends, or a request is already pending';
 
-      const { error } = await supabase.from('friendships').insert({ requester_id: user.id, addressee_id: target.id });
-      if (error) return error.message.includes('duplicate') ? 'Already friends, or a request is already pending' : error.message;
-      await refresh();
+    try {
+      await setDoc(doc(db, 'friendships', id), {
+        uidA: user.uid < targetUid ? user.uid : targetUid,
+        uidB: user.uid < targetUid ? targetUid : user.uid,
+        requestedBy: user.uid,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
       return null;
-    },
-    [user, refresh]
-  );
+    } catch (err) {
+      return err instanceof Error ? err.message : String(err);
+    }
+  };
 
-  const respond = useCallback(
-    async (friendshipId: string, accept: boolean) => {
-      if (accept) {
-        await supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId);
-      } else {
-        await supabase.from('friendships').delete().eq('id', friendshipId);
-      }
-      await refresh();
-    },
-    [refresh]
-  );
+  const respond = async (id: string, accept: boolean) => {
+    if (accept) {
+      await setDoc(doc(db, 'friendships', id), { status: 'accepted' }, { merge: true });
+    } else {
+      await deleteDoc(doc(db, 'friendships', id));
+    }
+  };
 
-  const cancelRequest = useCallback(
-    async (friendshipId: string) => {
-      await supabase.from('friendships').delete().eq('id', friendshipId);
-      await refresh();
-    },
-    [refresh]
-  );
+  const cancelRequest = async (id: string) => {
+    await deleteDoc(doc(db, 'friendships', id));
+  };
 
-  return { friends, incoming, outgoing, loading, sendRequest, respond, cancelRequest, refresh };
+  return { friends, incoming, outgoing, loading, sendRequest, respond, cancelRequest };
 }

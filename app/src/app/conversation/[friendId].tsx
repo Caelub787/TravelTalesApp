@@ -62,7 +62,7 @@ export default function ConversationScreen() {
               </ThemedView>
             )}
             {messages.map((message) => {
-              const mine = message.senderId === user?.id;
+              const mine = message.senderId === user?.uid;
               return (
                 <ThemedView key={message.id} style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
                   <ThemedView
@@ -89,7 +89,7 @@ export default function ConversationScreen() {
                     )}
                   </ThemedView>
                   <ThemedText type="small" themeColor="textSecondary" style={styles.timestamp}>
-                    {formatRelativeTime(new Date(message.createdAt).getTime())}
+                    {formatRelativeTime(message.createdAt)}
                   </ThemedText>
                 </ThemedView>
               );

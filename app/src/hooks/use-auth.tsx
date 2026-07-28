@@ -1,14 +1,16 @@
-import type { Session, User } from '@supabase/supabase-js';
-import * as AuthSession from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
+import { GoogleAuthProvider, onAuthStateChanged, signInWithCredential, signOut as firebaseSignOut, type User } from 'firebase/auth';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import * as WebBrowser from 'expo-web-browser';
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
-import { isSupabaseConfigured, supabase } from '@/services/supabase';
+import { auth, db, isFirebaseConfigured } from '@/services/firebase';
 
 WebBrowser.maybeCompleteAuthSession();
 
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
 interface AuthContextValue {
-  session: Session | null;
   user: User | null;
   loading: boolean;
   configured: boolean;
@@ -19,71 +21,81 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const pendingResolve = useRef<((error: string | null) => void) | null>(null);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+  });
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isFirebaseConfigured) {
       setLoading(false);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
       setLoading(false);
     });
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
+    return unsubscribe;
+  }, []);
+
+  // Create/update this user's profile doc (used for friend search by email) whenever they
+  // sign in — Firestore has no server-side "on user created" trigger without paid Cloud
+  // Functions, so this is the client-side equivalent.
+  useEffect(() => {
+    if (!user) return;
+    setDoc(
+      doc(db, 'users', user.uid),
+      { email: user.email, displayName: user.displayName ?? null, updatedAt: serverTimestamp() },
+      { merge: true }
+    ).catch(() => {
+      // Non-fatal: the app still works this session even if the profile doc write fails.
     });
-    return () => subscription.unsubscribe();
-  }, []);
+  }, [user]);
 
-  // Supabase hands back a browser URL to visit; expo-web-browser opens it as an in-app
-  // auth sheet (not a full external browser hop) and resolves once Google redirects back
-  // to our app's own URL scheme, carrying the session tokens in the redirect URL.
-  const signInWithGoogle = useCallback(async () => {
-    try {
-      const redirectTo = AuthSession.makeRedirectUri();
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo, skipBrowserRedirect: true },
-      });
-      if (error || !data?.url) return error?.message ?? 'Could not start Google sign-in';
+  useEffect(() => {
+    if (!response) return;
+    const resolve = pendingResolve.current;
+    pendingResolve.current = null;
 
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-      if (result.type !== 'success' || !result.url) return null; // user cancelled — not an error
-
-      const url = new URL(result.url);
-      const params = new URLSearchParams(url.hash ? url.hash.slice(1) : url.search);
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      if (!accessToken || !refreshToken) return "Google sign-in didn't return a session";
-
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-      return sessionError?.message ?? null;
-    } catch (err) {
-      return err instanceof Error ? err.message : String(err);
+    if (response.type === 'success') {
+      const idToken = response.authentication?.idToken ?? response.params?.id_token;
+      if (!idToken) {
+        resolve?.('Google sign-in did not return a token');
+        return;
+      }
+      const credential = GoogleAuthProvider.credential(idToken);
+      signInWithCredential(auth, credential)
+        .then(() => resolve?.(null))
+        .catch((err) => resolve?.(err instanceof Error ? err.message : String(err)));
+    } else if (response.type === 'error') {
+      resolve?.(response.error?.message ?? 'Google sign-in failed');
+    } else {
+      resolve?.(null); // user dismissed/cancelled — not an error
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [response]);
+
+  const signInWithGoogle = useCallback(async (): Promise<string | null> => {
+    if (!GOOGLE_WEB_CLIENT_ID) return 'Google sign-in is not configured yet.';
+    if (!request) return 'Google sign-in is still loading — try again in a moment.';
+    return new Promise((resolve) => {
+      pendingResolve.current = resolve;
+      promptAsync().catch((err) => {
+        pendingResolve.current = null;
+        resolve(err instanceof Error ? err.message : String(err));
+      });
+    });
+  }, [request, promptAsync]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    await firebaseSignOut(auth);
   }, []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user: session?.user ?? null,
-        loading,
-        configured: isSupabaseConfigured,
-        signInWithGoogle,
-        signOut,
-      }}>
+    <AuthContext.Provider value={{ user, loading, configured: isFirebaseConfigured, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );

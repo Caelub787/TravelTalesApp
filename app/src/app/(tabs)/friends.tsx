@@ -65,7 +65,7 @@ export default function FriendsScreen() {
   const renderFriend = (friend: Friend) => (
     <Pressable
       key={friend.friendshipId}
-      onPress={() => router.push({ pathname: '/conversation/[friendId]', params: { friendId: friend.profileId, name: friend.displayName ?? friend.email } })}>
+      onPress={() => router.push({ pathname: '/conversation/[friendId]', params: { friendId: friend.uid, name: friend.displayName ?? friend.email } })}>
       <ThemedView type="backgroundElement" style={[styles.row, { borderColor: theme.border, shadowColor: theme.text }]}>
         <ThemedView style={[styles.avatar, { backgroundColor: theme.backgroundSelected }]}>
           <ThemedText type="smallBold" themeColor="accent">
