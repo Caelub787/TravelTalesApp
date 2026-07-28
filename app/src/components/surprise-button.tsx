@@ -17,11 +17,12 @@ export function SurpriseButton({ disabled, onPress }: Props) {
     <Pressable
       disabled={disabled}
       onPress={onPress}
-      style={[styles.button, { backgroundColor: theme.accent, opacity: disabled ? 0.5 : 1 }]}>
-      <Ionicons name="sparkles" size={16} color={theme.accentContrast} />
-      <ThemedText type="smallBold" themeColor="accentContrast">
-        Surprise me
-      </ThemedText>
+      style={[
+        styles.button,
+        { backgroundColor: theme.backgroundSelected, borderColor: theme.border, opacity: disabled ? 0.5 : 1 },
+      ]}>
+      <Ionicons name="sparkles" size={16} color={theme.accent} />
+      <ThemedText type="smallBold">Surprise me</ThemedText>
     </Pressable>
   );
 }
@@ -33,6 +34,7 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
     alignSelf: 'flex-start',
     borderRadius: Spacing.five,
+    borderWidth: 1,
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
   },
