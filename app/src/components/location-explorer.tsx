@@ -27,6 +27,7 @@ import { useSearchRadius } from '@/hooks/use-search-radius';
 import { useSpeakable } from '@/hooks/use-speakable';
 import { useTheme } from '@/hooks/use-theme';
 import { fetchNearbyArticles, type LocationFactsResponse, type NearbyArticle } from '@/services/api';
+import { DOWNLOAD_CHANNEL_ID, dismissNotification, presentNotification, requestNotificationPermission } from '@/services/notifications';
 import { matchesCategory } from '@/utils/category-match';
 import { distanceMeters } from '@/utils/distance';
 import { reverseGeocode } from '@/utils/geocode';
@@ -139,6 +140,16 @@ export function LocationExplorer({
   const handleDownloadArea = useCallback(async () => {
     if (!coords) return;
     setAreaDownloadStatus('downloading');
+    const notifyEnabled = await requestNotificationPermission().catch(() => false);
+    const notificationId = `area-download-${Date.now()}`;
+    if (notifyEnabled) {
+      await presentNotification({
+        identifier: notificationId,
+        title: 'Downloading area…',
+        body: 'Saving nearby articles for offline use',
+        channelId: DOWNLOAD_CHANNEL_ID,
+      }).catch(() => {});
+    }
     try {
       const label = await reverseGeocode(coords).catch(() => null);
       const response = await fetchNearbyArticles({
@@ -156,8 +167,18 @@ export function LocationExplorer({
         articles: response.articles,
       });
       setAreaDownloadStatus('success');
+      if (notifyEnabled) {
+        await dismissNotification(notificationId);
+        await presentNotification({
+          identifier: `${notificationId}-done`,
+          title: 'Area downloaded',
+          body: `${response.articles.length} article${response.articles.length === 1 ? '' : 's'} ready offline`,
+          channelId: DOWNLOAD_CHANNEL_ID,
+        }).catch(() => {});
+      }
     } catch {
       setAreaDownloadStatus('error');
+      if (notifyEnabled) await dismissNotification(notificationId);
     }
   }, [coords, radiusMiles, saveArea]);
 

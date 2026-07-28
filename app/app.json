@@ -45,7 +45,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Travel Tales uses your location to find real facts and stories about the place you're currently standing in."
+          "locationWhenInUsePermission": "Travel Tales uses your location to find real facts and stories about the place you're currently standing in.",
+          "locationAlwaysAndWhenInUsePermission": "Travel Tales uses your location in the background so Always On mode can notify you about nearby attractions and historical sites while you're driving.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       [
@@ -62,7 +65,21 @@
           "microphonePermission": "Travel Tales uses your microphone to let you ask questions about where you are out loud.",
           "speechRecognitionPermission": "Travel Tales uses speech recognition to turn your spoken question into text."
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#D9694B"
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-task-manager"
     ],
     "experiments": {
       "typedRoutes": true,

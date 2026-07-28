@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAlwaysOnMode } from '@/hooks/use-always-on-mode';
 import { useContentMode, type ContentMode } from '@/hooks/use-content-mode';
 import { useReadPreference, type ReadPreference } from '@/hooks/use-read-preference';
 import { useTheme } from '@/hooks/use-theme';
@@ -59,6 +61,7 @@ const READ_OPTIONS: ReadOption[] = [
 export default function SettingsScreen() {
   const { mode, setMode } = useContentMode();
   const { preference, setPreference } = useReadPreference();
+  const { enabled: alwaysOnEnabled, loading: alwaysOnLoading, error: alwaysOnError, setEnabled: setAlwaysOnEnabled } = useAlwaysOnMode();
   const theme = useTheme();
 
   return (
@@ -126,6 +129,59 @@ export default function SettingsScreen() {
               </Pressable>
             );
           })}
+
+          <ThemedText type="smallBold" style={styles.sectionSpacing}>
+            Always On mode
+          </ThemedText>
+          <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
+            <ThemedView style={styles.cardHeader}>
+              <Ionicons name="radio-outline" size={18} color={alwaysOnEnabled ? theme.accent : theme.text} />
+              <ThemedText type="smallBold" style={styles.cardLabel}>
+                Notify me near attractions
+              </ThemedText>
+              <Switch
+                value={alwaysOnEnabled}
+                disabled={alwaysOnLoading}
+                onValueChange={setAlwaysOnEnabled}
+                trackColor={{ false: theme.border, true: theme.accent }}
+                thumbColor={theme.backgroundElement}
+              />
+            </ThemedView>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.description}>
+              While driving or exploring, get a notification whenever you pass a popular
+              attraction, lookout, or historical site — even with the app closed. If "Read
+              aloud automatically" is on above, it'll play a soft chime and read the story out
+              loud too. This keeps a location check running in the background (shown as an
+              ongoing notification) and uses more battery than normal.
+            </ThemedText>
+            {alwaysOnError && (
+              <ThemedText type="small" themeColor="textSecondary" style={styles.description}>
+                {alwaysOnError}
+              </ThemedText>
+            )}
+          </ThemedView>
+
+          <ThemedText type="smallBold" style={styles.sectionSpacing}>
+            Downloads
+          </ThemedText>
+          <Pressable onPress={() => router.push('/(tabs)/trip')}>
+            <ThemedView type="backgroundElement" style={[styles.linkRow, { borderColor: theme.border }]}>
+              <Ionicons name="navigate-outline" size={18} color={theme.text} />
+              <ThemedText type="smallBold" style={styles.cardLabel}>
+                Manage downloaded trips
+              </ThemedText>
+              <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+            </ThemedView>
+          </Pressable>
+          <Pressable onPress={() => router.push('/(tabs)/saved')}>
+            <ThemedView type="backgroundElement" style={[styles.linkRow, { borderColor: theme.border }]}>
+              <Ionicons name="cloud-download-outline" size={18} color={theme.text} />
+              <ThemedText type="smallBold" style={styles.cardLabel}>
+                Manage downloaded areas & articles
+              </ThemedText>
+              <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+            </ThemedView>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -169,5 +225,13 @@ const styles = StyleSheet.create({
   },
   description: {
     lineHeight: 20,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Spacing.four,
+    borderWidth: 1.5,
+    padding: Spacing.three,
   },
 });

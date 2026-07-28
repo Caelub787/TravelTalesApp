@@ -3,6 +3,8 @@ import { useColorScheme } from 'react-native';
 
 import { ArticleViewerModal } from '@/components/article-viewer-modal';
 import { CrashBoundary } from '@/components/crash-boundary';
+import { NotificationResponseHandler } from '@/components/notification-response-handler';
+import { AlwaysOnModeProvider } from '@/hooks/use-always-on-mode';
 import { ArticleHistoryProvider } from '@/hooks/use-article-history';
 import { ArticleViewerProvider } from '@/hooks/use-article-viewer';
 import { AuthProvider } from '@/hooks/use-auth';
@@ -29,8 +31,11 @@ export default function RootLayout() {
                       <OfflineTripsProvider>
                         <OfflineAreasProvider>
                           <OfflineArticlesProvider>
-                            <Stack screenOptions={{ headerShown: false }} />
-                            <ArticleViewerModal />
+                            <AlwaysOnModeProvider>
+                              <Stack screenOptions={{ headerShown: false }} />
+                              <ArticleViewerModal />
+                              <NotificationResponseHandler />
+                            </AlwaysOnModeProvider>
                           </OfflineArticlesProvider>
                         </OfflineAreasProvider>
                       </OfflineTripsProvider>

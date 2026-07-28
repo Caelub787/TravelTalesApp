@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 
 import type { TripStop } from '@/hooks/use-offline-trips';
+import { DOWNLOAD_CHANNEL_ID, dismissNotification, presentNotification, requestNotificationPermission } from '@/services/notifications';
 import type { RouteSample } from '@/utils/route-sampling';
 import { fetchLocationFacts, fetchNearbyArticles, fetchNearbyPlaces } from '@/services/api';
 import { reverseGeocode } from '@/utils/geocode';
@@ -25,6 +26,9 @@ const MAX_STOP_DELAY_MS = 8000;
 // Retried per stop (on top of the backend's own retry-with-backoff for a single Wikipedia
 // call) so a stop only ends up empty after repeated, sustained failure — not one blip.
 const MAX_ATTEMPTS_PER_STOP = 5;
+// Updating a system notification is cheap but still a real OS call — no need to do it every
+// single stop on a 100+-stop trip.
+const PROGRESS_NOTIFY_STRIDE = 5;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -39,6 +43,20 @@ export function useTripDownload() {
     setStatus('downloading');
     setError(null);
     setProgress({ done: 0, total: samples.length });
+
+    const notificationId = `trip-download-${Date.now()}`;
+    const notifyEnabled = await requestNotificationPermission().catch(() => false);
+    const updateProgressNotification = (done: number, total: number) =>
+      notifyEnabled
+        ? presentNotification({
+            identifier: notificationId,
+            title: 'Downloading trip…',
+            body: `${done} of ${total} stops downloaded`,
+            channelId: DOWNLOAD_CHANNEL_ID,
+          }).catch(() => {})
+        : Promise.resolve();
+
+    if (notifyEnabled) await updateProgressNotification(0, samples.length);
 
     const stops: TripStop[] = [];
     let failedStops = 0;
@@ -108,10 +126,26 @@ export function useTripDownload() {
         story,
       });
       setProgress({ done: i + 1, total: samples.length });
+      if ((i + 1) % PROGRESS_NOTIFY_STRIDE === 0 || i === samples.length - 1) {
+        await updateProgressNotification(i + 1, samples.length);
+      }
 
       if (i < samples.length - 1) {
         await sleep(delayMs);
       }
+    }
+
+    if (notifyEnabled) {
+      await dismissNotification(notificationId);
+      await presentNotification({
+        identifier: `${notificationId}-done`,
+        title: failedStops > 0 ? 'Trip download finished with some gaps' : 'Trip downloaded',
+        body:
+          failedStops > 0
+            ? `${samples.length - failedStops} of ${samples.length} stops ready offline`
+            : `${samples.length} stop${samples.length === 1 ? '' : 's'} ready offline`,
+        channelId: DOWNLOAD_CHANNEL_ID,
+      }).catch(() => {});
     }
 
     if (failedStops > 0) {
