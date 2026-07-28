@@ -1,33 +1,47 @@
-import * as Google from 'expo-auth-session/providers/google';
-import { GoogleAuthProvider, onAuthStateChanged, signInWithCredential, signOut as firebaseSignOut, type User } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  type User,
+} from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import * as WebBrowser from 'expo-web-browser';
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { auth, db, isFirebaseConfigured } from '@/services/firebase';
-
-WebBrowser.maybeCompleteAuthSession();
-
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   configured: boolean;
-  signInWithGoogle: () => Promise<string | null>;
+  signIn: (email: string, password: string) => Promise<string | null>;
+  signUp: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function friendlyAuthError(err: unknown): string {
+  const code = (err as { code?: string })?.code;
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'That email address looks invalid.';
+    case 'auth/email-already-in-use':
+      return 'An account with that email already exists — try signing in instead.';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters.';
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Incorrect email or password.';
+    default:
+      return err instanceof Error ? err.message : String(err);
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const pendingResolve = useRef<((error: string | null) => void) | null>(null);
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-  });
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -55,47 +69,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [user]);
 
-  useEffect(() => {
-    if (!response) return;
-    const resolve = pendingResolve.current;
-    pendingResolve.current = null;
-
-    if (response.type === 'success') {
-      const idToken = response.authentication?.idToken ?? response.params?.id_token;
-      if (!idToken) {
-        resolve?.('Google sign-in did not return a token');
-        return;
-      }
-      const credential = GoogleAuthProvider.credential(idToken);
-      signInWithCredential(auth, credential)
-        .then(() => resolve?.(null))
-        .catch((err) => resolve?.(err instanceof Error ? err.message : String(err)));
-    } else if (response.type === 'error') {
-      resolve?.(response.error?.message ?? 'Google sign-in failed');
-    } else {
-      resolve?.(null); // user dismissed/cancelled — not an error
+  const signIn = useCallback(async (email: string, password: string): Promise<string | null> => {
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      return null;
+    } catch (err) {
+      return friendlyAuthError(err);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [response]);
+  }, []);
 
-  const signInWithGoogle = useCallback(async (): Promise<string | null> => {
-    if (!GOOGLE_WEB_CLIENT_ID) return 'Google sign-in is not configured yet.';
-    if (!request) return 'Google sign-in is still loading — try again in a moment.';
-    return new Promise((resolve) => {
-      pendingResolve.current = resolve;
-      promptAsync().catch((err) => {
-        pendingResolve.current = null;
-        resolve(err instanceof Error ? err.message : String(err));
-      });
-    });
-  }, [request, promptAsync]);
+  const signUp = useCallback(async (email: string, password: string): Promise<string | null> => {
+    try {
+      await createUserWithEmailAndPassword(auth, email.trim(), password);
+      return null;
+    } catch (err) {
+      return friendlyAuthError(err);
+    }
+  }, []);
 
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, configured: isFirebaseConfigured, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, configured: isFirebaseConfigured, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

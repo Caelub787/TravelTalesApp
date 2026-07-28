@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, TextInput } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -10,7 +10,10 @@ import { useTheme } from '@/hooks/use-theme';
 
 export function AuthForm() {
   const theme = useTheme();
-  const { configured, signInWithGoogle } = useAuth();
+  const { configured, signIn, signUp } = useAuth();
+  const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,10 +29,10 @@ export function AuthForm() {
     );
   }
 
-  const handleGoogle = async () => {
+  const handleSubmit = async () => {
     setError(null);
     setBusy(true);
-    const result = await signInWithGoogle();
+    const result = mode === 'signIn' ? await signIn(email, password) : await signUp(email, password);
     setBusy(false);
     if (result) setError(result);
   };
@@ -37,7 +40,7 @@ export function AuthForm() {
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="subtitle" style={styles.title}>
-        Sign in
+        {mode === 'signIn' ? 'Sign in' : 'Create account'}
       </ThemedText>
       <ThemedText themeColor="textSecondary">
         Sign in to add friends and share trips, articles, and stories with them.
@@ -49,18 +52,46 @@ export function AuthForm() {
         </ThemedView>
       )}
 
+      <TextInput
+        value={email}
+        onChangeText={setEmail}
+        placeholder="Email"
+        placeholderTextColor={theme.textSecondary}
+        autoCapitalize="none"
+        autoComplete="email"
+        keyboardType="email-address"
+        style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+      />
+      <TextInput
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Password"
+        placeholderTextColor={theme.textSecondary}
+        autoCapitalize="none"
+        secureTextEntry
+        style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+      />
+
       <Pressable
-        onPress={handleGoogle}
-        disabled={busy}
-        style={[styles.googleButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border, opacity: busy ? 0.6 : 1 }]}>
+        onPress={handleSubmit}
+        disabled={busy || !email.trim() || !password}
+        style={[
+          styles.submitButton,
+          { backgroundColor: theme.accent, opacity: busy || !email.trim() || !password ? 0.6 : 1 },
+        ]}>
         {busy ? (
-          <ActivityIndicator color={theme.text} />
+          <ActivityIndicator color={theme.accentContrast} />
         ) : (
-          <>
-            <Ionicons name="logo-google" size={18} color={theme.text} />
-            <ThemedText type="smallBold">Continue with Google</ThemedText>
-          </>
+          <ThemedText type="smallBold" themeColor="accentContrast">
+            {mode === 'signIn' ? 'Sign in' : 'Create account'}
+          </ThemedText>
         )}
+      </Pressable>
+
+      <Pressable onPress={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')} style={styles.switchModeButton}>
+        <ThemedText type="small" themeColor="textSecondary">
+          {mode === 'signIn' ? "Don't have an account? Create one" : 'Already have an account? Sign in'}
+        </ThemedText>
       </Pressable>
     </ThemedView>
   );
@@ -85,13 +116,21 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
-  googleButton: {
-    flexDirection: 'row',
+  input: {
+    borderRadius: Spacing.three,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    fontSize: 16,
+  },
+  submitButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.two,
     borderRadius: Spacing.five,
-    borderWidth: 1,
     paddingVertical: Spacing.three,
+  },
+  switchModeButton: {
+    alignItems: 'center',
+    paddingVertical: Spacing.one,
   },
 });
