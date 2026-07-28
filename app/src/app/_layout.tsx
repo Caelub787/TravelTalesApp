@@ -5,6 +5,7 @@ import { ArticleViewerModal } from '@/components/article-viewer-modal';
 import { CrashBoundary } from '@/components/crash-boundary';
 import { ArticleHistoryProvider } from '@/hooks/use-article-history';
 import { ArticleViewerProvider } from '@/hooks/use-article-viewer';
+import { AuthProvider } from '@/hooks/use-auth';
 import { ContentModeProvider } from '@/hooks/use-content-mode';
 import { OfflineAreasProvider } from '@/hooks/use-offline-areas';
 import { OfflineArticlesProvider } from '@/hooks/use-offline-articles';
@@ -18,26 +19,28 @@ export default function RootLayout() {
   return (
     <CrashBoundary>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <ContentModeProvider>
-          <ReadPreferenceProvider>
-            <SearchRadiusProvider>
-              <SavedItemsProvider>
-                <ArticleHistoryProvider>
-                  <ArticleViewerProvider>
-                    <OfflineTripsProvider>
-                      <OfflineAreasProvider>
-                        <OfflineArticlesProvider>
-                          <Stack screenOptions={{ headerShown: false }} />
-                          <ArticleViewerModal />
-                        </OfflineArticlesProvider>
-                      </OfflineAreasProvider>
-                    </OfflineTripsProvider>
-                  </ArticleViewerProvider>
-                </ArticleHistoryProvider>
-              </SavedItemsProvider>
-            </SearchRadiusProvider>
-          </ReadPreferenceProvider>
-        </ContentModeProvider>
+        <AuthProvider>
+          <ContentModeProvider>
+            <ReadPreferenceProvider>
+              <SearchRadiusProvider>
+                <SavedItemsProvider>
+                  <ArticleHistoryProvider>
+                    <ArticleViewerProvider>
+                      <OfflineTripsProvider>
+                        <OfflineAreasProvider>
+                          <OfflineArticlesProvider>
+                            <Stack screenOptions={{ headerShown: false }} />
+                            <ArticleViewerModal />
+                          </OfflineArticlesProvider>
+                        </OfflineAreasProvider>
+                      </OfflineTripsProvider>
+                    </ArticleViewerProvider>
+                  </ArticleHistoryProvider>
+                </SavedItemsProvider>
+              </SearchRadiusProvider>
+            </ReadPreferenceProvider>
+          </ContentModeProvider>
+        </AuthProvider>
       </ThemeProvider>
     </CrashBoundary>
   );

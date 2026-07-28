@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 
+import { ChipButton } from '@/components/chip-button';
 import { ExternalLink } from '@/components/external-link';
 import { SaveButton } from '@/components/save-button';
+import { ShareSheet } from '@/components/share-sheet';
 import { SpeakButton } from '@/components/speak-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -17,6 +20,7 @@ interface Props {
 
 export function AnswerCard({ result }: Props) {
   const theme = useTheme();
+  const [shareVisible, setShareVisible] = useState(false);
 
   return (
     <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border, shadowColor: theme.text }]}>
@@ -33,8 +37,11 @@ export function AnswerCard({ result }: Props) {
         <ThemedView style={styles.actionRow}>
           <SpeakButton text={result.answer} />
           <SaveButton id={answerSaveId(result)} item={{ id: answerSaveId(result), kind: 'answer', data: result }} />
+          <ChipButton label="Share" icon="paper-plane-outline" onPress={() => setShareVisible(true)} />
         </ThemedView>
       )}
+
+      <ShareSheet visible={shareVisible} onClose={() => setShareVisible(false)} attachmentType="answer" attachment={result} />
 
       {result.sources.length > 0 && (
         <ThemedView style={[styles.sourceList, { borderTopColor: theme.border }]}>

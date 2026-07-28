@@ -10,7 +10,9 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://traveltalesapp.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://traveltalesapp.onrender.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": ""
       }
     },
     "preview": {
@@ -20,14 +22,18 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://traveltalesapp.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://traveltalesapp.onrender.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": ""
       }
     },
     "production": {
       "channel": "production",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://traveltalesapp.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://traveltalesapp.onrender.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": ""
       }
     }
   },

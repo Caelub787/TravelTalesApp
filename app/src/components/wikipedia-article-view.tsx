@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
 
+import { ShareSheet } from '@/components/share-sheet';
 import { SpeakButton } from '@/components/speak-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -48,6 +49,7 @@ export function WikipediaArticleView({ url, initialTitle, onViewRaw }: Wikipedia
     }
   }, [result, preference, speak]);
 
+  const [shareVisible, setShareVisible] = useState(false);
   const [question, setQuestion] = useState('');
   const questionRef = useRef('');
   const { result: askResult, status: askStatus, error: askError, ask } = useArticleAsk();
@@ -144,6 +146,14 @@ export function WikipediaArticleView({ url, initialTitle, onViewRaw }: Wikipedia
                 {isDownloaded ? 'Downloaded' : 'Download for offline'}
               </ThemedText>
             </Pressable>
+            <Pressable
+              onPress={() => setShareVisible(true)}
+              style={[styles.downloadButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+              <Ionicons name="paper-plane-outline" size={14} color={theme.textSecondary} />
+              <ThemedText type="small" themeColor="textSecondary">
+                Share
+              </ThemedText>
+            </Pressable>
           </ThemedView>
 
           <ThemedView style={styles.bodyText}>
@@ -224,6 +234,13 @@ export function WikipediaArticleView({ url, initialTitle, onViewRaw }: Wikipedia
               <ThemedText type="linkPrimary">View original article & edit history →</ThemedText>
             </Pressable>
           </ThemedView>
+
+          <ShareSheet
+            visible={shareVisible}
+            onClose={() => setShareVisible(false)}
+            attachmentType="article"
+            attachment={{ url, title: result.title, extract: result.extract, downloadedAt: Date.now() }}
+          />
         </>
       )}
     </ScrollView>

@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 
+import { ShareSheet } from '@/components/share-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CardShadow, Spacing } from '@/constants/theme';
@@ -18,6 +20,8 @@ interface Props {
 export function TripList({ onStart }: Props) {
   const theme = useTheme();
   const { trips, deleteTrip } = useOfflineTrips();
+  const [shareTripId, setShareTripId] = useState<string | null>(null);
+  const shareTrip = trips.find((trip) => trip.id === shareTripId) ?? null;
 
   if (trips.length === 0) {
     return (
@@ -56,6 +60,12 @@ export function TripList({ onStart }: Props) {
               </ThemedText>
             </Pressable>
             <Pressable
+              onPress={() => setShareTripId(trip.id)}
+              style={[styles.actionButton, { backgroundColor: theme.backgroundSelected }]}>
+              <Ionicons name="paper-plane-outline" size={14} color={theme.text} />
+              <ThemedText type="smallBold">Share</ThemedText>
+            </Pressable>
+            <Pressable
               onPress={() => deleteTrip(trip.id)}
               style={[styles.actionButton, { backgroundColor: theme.backgroundSelected }]}>
               <Ionicons name="trash-outline" size={14} color={theme.text} />
@@ -64,6 +74,10 @@ export function TripList({ onStart }: Props) {
           </ThemedView>
         </ThemedView>
       ))}
+
+      {shareTrip && (
+        <ShareSheet visible attachmentType="trip" attachment={shareTrip} onClose={() => setShareTripId(null)} />
+      )}
     </ThemedView>
   );
 }
@@ -100,6 +114,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.two,
     marginTop: Spacing.two,
+    flexWrap: 'wrap',
   },
   actionButton: {
     flexDirection: 'row',
