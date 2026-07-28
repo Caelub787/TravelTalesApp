@@ -1,6 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { Colors } from '@/constants/theme';
+
+const NOTIFICATION_COLOR = Colors.light.accent;
+
 // Notifications shown while the app is foregrounded still need to actually display (the
 // default expo-notifications behavior suppresses them, assuming most apps have their own
 // in-app UI for foreground events) — we want the always-on proximity alert and download
@@ -26,10 +30,12 @@ export function ensureNotificationChannels(): Promise<void> {
       Notifications.setNotificationChannelAsync(DOWNLOAD_CHANNEL_ID, {
         name: 'Downloads',
         importance: Notifications.AndroidImportance.DEFAULT,
+        lightColor: NOTIFICATION_COLOR,
       }),
       Notifications.setNotificationChannelAsync(PROXIMITY_CHANNEL_ID, {
         name: 'Nearby attractions',
         importance: Notifications.AndroidImportance.HIGH,
+        lightColor: NOTIFICATION_COLOR,
       }),
     ]).then(() => undefined);
   }
@@ -59,6 +65,7 @@ export async function presentNotification({ identifier, title, body, channelId, 
       title,
       body,
       data: data ?? {},
+      color: NOTIFICATION_COLOR,
     },
     trigger: channelId ? { channelId } : null,
   });
