@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAlwaysOnMode } from '@/hooks/use-always-on-mode';
+import { READ_FREQUENCY_OPTIONS_MINUTES, useAlwaysOnFrequency } from '@/hooks/use-always-on-frequency';
 import { useContentMode, type ContentMode } from '@/hooks/use-content-mode';
 import { useReadPreference, type ReadPreference } from '@/hooks/use-read-preference';
 import { useTheme } from '@/hooks/use-theme';
@@ -62,6 +63,7 @@ export default function SettingsScreen() {
   const { mode, setMode } = useContentMode();
   const { preference, setPreference } = useReadPreference();
   const { enabled: alwaysOnEnabled, loading: alwaysOnLoading, error: alwaysOnError, setEnabled: setAlwaysOnEnabled } = useAlwaysOnMode();
+  const { frequencyMinutes, setFrequencyMinutes } = useAlwaysOnFrequency();
   const theme = useTheme();
 
   return (
@@ -159,6 +161,30 @@ export default function SettingsScreen() {
                 {alwaysOnError}
               </ThemedText>
             )}
+
+            <ThemedView style={[styles.frequencyRow, { borderTopColor: theme.border }]}>
+              <ThemedText type="small" themeColor="textSecondary">
+                Minimum time between readings
+              </ThemedText>
+              <ThemedView style={styles.frequencyChips}>
+                {READ_FREQUENCY_OPTIONS_MINUTES.map((minutes) => {
+                  const selected = minutes === frequencyMinutes;
+                  return (
+                    <Pressable
+                      key={minutes}
+                      onPress={() => setFrequencyMinutes(minutes)}
+                      style={[
+                        styles.frequencyChip,
+                        { backgroundColor: selected ? theme.accent : theme.backgroundSelected, borderColor: selected ? theme.accent : theme.border },
+                      ]}>
+                      <ThemedText type="smallBold" themeColor={selected ? 'accentContrast' : 'text'}>
+                        {minutes}m
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </ThemedView>
+            </ThemedView>
           </ThemedView>
 
           <ThemedText type="smallBold" style={styles.sectionSpacing}>
@@ -233,5 +259,22 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.four,
     borderWidth: 1.5,
     padding: Spacing.three,
+  },
+  frequencyRow: {
+    marginTop: Spacing.one,
+    paddingTop: Spacing.three,
+    borderTopWidth: 1,
+    gap: Spacing.two,
+  },
+  frequencyChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  frequencyChip: {
+    borderRadius: Spacing.five,
+    borderWidth: 1.5,
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.three,
   },
 });

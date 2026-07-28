@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
 
+import { DEFAULT_READ_FREQUENCY_MINUTES, READ_FREQUENCY_STORAGE_KEY } from '@/hooks/use-always-on-frequency';
 import { PROXIMITY_CHANNEL_ID, presentNotification } from '@/services/notifications';
 import { fetchLocationFacts, fetchNearbyArticles, fetchNearbyPlaces, type NearbyPlace } from '@/services/api';
 import { sanitizeForSpeech } from '@/utils/speech-text';
@@ -12,6 +13,7 @@ import { sanitizeForSpeech } from '@/utils/speech-text';
 const CONTENT_MODE_KEY = 'traveltales:content-mode';
 const READ_PREFERENCE_KEY = 'traveltales:read-preference';
 const NOTIFIED_STORAGE_KEY = 'traveltales:always-on-notified';
+const LAST_SPOKEN_STORAGE_KEY = 'traveltales:always-on-last-spoken-at';
 
 // A tight "you're basically right next to this" radius — separate from the user's browse
 // radius setting, since a drive-by ping should only fire for things genuinely nearby.
@@ -29,6 +31,19 @@ interface NotifiedEntry {
 
 function placeKey(place: NearbyPlace): string {
   return `place:${place.id}`;
+}
+
+// Rating count is a much better "this is a well-known, popular spot" signal than rating
+// alone (a hidden gem can have a perfect 5.0 from 3 reviews) — sort on that first, with
+// rating as a tiebreaker, so the pick prioritizes fame over raw distance.
+function popularityScore(place: NearbyPlace): number {
+  const ratingCount = place.userRatingCount ?? 0;
+  const rating = place.rating ?? 0;
+  return ratingCount * 1000 + rating;
+}
+
+function byPopularity(places: NearbyPlace[]): NearbyPlace[] {
+  return [...places].sort((a, b) => popularityScore(b) - popularityScore(a));
 }
 
 async function loadNotified(): Promise<NotifiedEntry[]> {
@@ -106,7 +121,7 @@ export async function checkProximityAndNotify(coords: Coords): Promise<void> {
     return;
   }
 
-  const candidate = places.find((place) => !notified.some((entry) => entry.key === placeKey(place)));
+  const candidate = byPopularity(places).find((place) => !notified.some((entry) => entry.key === placeKey(place)));
   if (!candidate) return;
 
   await markNotified(notified, placeKey(candidate));
@@ -156,6 +171,20 @@ export async function checkProximityAndNotify(coords: Coords): Promise<void> {
   });
 
   if (autoRead) {
-    await playChimeThenSpeak(speakText);
+    const alreadySpeaking = await Speech.isSpeakingAsync();
+    const [lastSpokenAtRaw, frequencyRaw] = await Promise.all([
+      AsyncStorage.getItem(LAST_SPOKEN_STORAGE_KEY),
+      AsyncStorage.getItem(READ_FREQUENCY_STORAGE_KEY),
+    ]);
+    const lastSpokenAt = lastSpokenAtRaw ? Number(lastSpokenAtRaw) : 0;
+    const frequencyMinutes = frequencyRaw && Number(frequencyRaw) > 0 ? Number(frequencyRaw) : DEFAULT_READ_FREQUENCY_MINUTES;
+    const dueForNextRead = Date.now() - lastSpokenAt >= frequencyMinutes * 60 * 1000;
+
+    // Never cut off a reading in progress, and respect the configured minimum gap between
+    // readings so Always On mode isn't talking constantly through a dense stretch of stops.
+    if (!alreadySpeaking && dueForNextRead) {
+      await AsyncStorage.setItem(LAST_SPOKEN_STORAGE_KEY, String(Date.now())).catch(() => {});
+      await playChimeThenSpeak(speakText);
+    }
   }
 }

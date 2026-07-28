@@ -27,7 +27,7 @@ export default function MapScreenNative() {
 
   const markers: MapMarker[] = [];
   if (coords) markers.push({ id: 'me', coords, label: 'You are here', color: '#208AEF' });
-  if (pin) markers.push({ id: 'pin', coords: pin, label: 'Selected spot', color: '#D9694B' });
+  if (pin) markers.push({ id: 'pin', coords: pin, label: 'Selected spot', color: theme.accent });
 
   return (
     <ThemedView style={styles.container}>

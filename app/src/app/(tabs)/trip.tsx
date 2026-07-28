@@ -67,7 +67,7 @@ export default function TripScreen() {
             label:
               (index === 0 ? 'Start' : index === planner.entries.length - 1 ? 'End' : `Stop ${index}`) +
               (entry.label ? ` — ${entry.label}` : ''),
-            color: index === 0 || index === planner.entries.length - 1 ? '#208AEF' : '#D9694B',
+            color: index === 0 || index === planner.entries.length - 1 ? '#208AEF' : theme.accent,
           }
         : null
     )
