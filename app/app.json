@@ -18,6 +18,9 @@
       "bundleIdentifier": "com.traveltalesapp.app",
       "config": {
         "googleMapsApiKey": "AIzaSyA5Zgtw92-CnoRRknqjckk1L17m8MEELHA"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -48,7 +51,8 @@
           "locationWhenInUsePermission": "Travel Tales uses your location to find real facts and stories about the place you're currently standing in.",
           "locationAlwaysAndWhenInUsePermission": "Travel Tales uses your location in the background so Always On mode can notify you about nearby attractions and historical sites while you're driving.",
           "isAndroidBackgroundLocationEnabled": true,
-          "isAndroidForegroundServiceEnabled": true
+          "isAndroidForegroundServiceEnabled": true,
+          "isIosBackgroundLocationEnabled": true
         }
       ],
       [
