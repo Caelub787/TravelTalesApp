@@ -233,35 +233,69 @@ export function LocationExplorer({
               </ThemedText>
             </ThemedView>
           )}
-          {nearbyStatus === 'loading' && (
+          {/* A brief connectivity blip during a background refresh shouldn't wipe out articles
+              already on screen — only show the full loading/error state when there's nothing
+              loaded yet to fall back on; otherwise just hint at what's happening and keep the
+              existing list up. */}
+          {nearbyStatus === 'loading' && !nearbyResult && (
             <ThemedView style={styles.notice}>
               <ActivityIndicator />
               <ThemedText themeColor="textSecondary">Finding what's nearby…</ThemedText>
             </ThemedView>
           )}
-          {nearbyStatus === 'error' && (
+          {nearbyStatus === 'loading' && nearbyResult && (
+            <ThemedView style={styles.refreshingRow}>
+              <ActivityIndicator size="small" />
+              <ThemedText type="small" themeColor="textSecondary">
+                Refreshing…
+              </ThemedText>
+            </ThemedView>
+          )}
+          {nearbyStatus === 'error' && !nearbyResult && (
             <ThemedView type="backgroundElement" style={styles.notice}>
               <ThemedText>Couldn't load nearby articles: {nearbyError}</ThemedText>
             </ThemedView>
           )}
-          {nearbyStatus === 'success' && nearbyResult && (
-            <NearbyArticlesList result={{ ...nearbyResult, articles: filteredArticles }} />
+          {nearbyStatus === 'error' && nearbyResult && (
+            <ThemedView style={styles.refreshingRow}>
+              <Ionicons name="alert-circle-outline" size={14} color={theme.textSecondary} />
+              <ThemedText type="small" themeColor="textSecondary">
+                Couldn't refresh — showing what's already loaded.
+              </ThemedText>
+            </ThemedView>
           )}
+          {nearbyResult && <NearbyArticlesList result={{ ...nearbyResult, articles: filteredArticles }} />}
         </>
       ) : (
         <>
-          {factsStatus === 'loading' && (
+          {factsStatus === 'loading' && !factsResult && (
             <ThemedView style={styles.notice}>
               <ActivityIndicator />
               <ThemedText themeColor="textSecondary">Searching for verified stories…</ThemedText>
             </ThemedView>
           )}
-          {factsStatus === 'error' && (
+          {factsStatus === 'loading' && factsResult && (
+            <ThemedView style={styles.refreshingRow}>
+              <ActivityIndicator size="small" />
+              <ThemedText type="small" themeColor="textSecondary">
+                Refreshing…
+              </ThemedText>
+            </ThemedView>
+          )}
+          {factsStatus === 'error' && !factsResult && (
             <ThemedView type="backgroundElement" style={styles.notice}>
               <ThemedText>Couldn't load stories: {factsError}</ThemedText>
             </ThemedView>
           )}
-          {factsStatus === 'success' && factsResult && <StoryCard result={factsResult} />}
+          {factsStatus === 'error' && factsResult && (
+            <ThemedView style={styles.refreshingRow}>
+              <Ionicons name="alert-circle-outline" size={14} color={theme.textSecondary} />
+              <ThemedText type="small" themeColor="textSecondary">
+                Couldn't refresh — showing what's already loaded.
+              </ThemedText>
+            </ThemedView>
+          )}
+          {factsResult && <StoryCard result={factsResult} />}
         </>
       )}
 
@@ -269,18 +303,34 @@ export function LocationExplorer({
 
       <AskBox disabled={!coords} onSubmit={handleAsk} />
 
-      {askStatus === 'loading' && (
+      {askStatus === 'loading' && !askResult && (
         <ThemedView style={styles.notice}>
           <ActivityIndicator />
           <ThemedText themeColor="textSecondary">Looking that up…</ThemedText>
         </ThemedView>
       )}
-      {askStatus === 'error' && (
+      {askStatus === 'loading' && askResult && (
+        <ThemedView style={styles.refreshingRow}>
+          <ActivityIndicator size="small" />
+          <ThemedText type="small" themeColor="textSecondary">
+            Looking that up…
+          </ThemedText>
+        </ThemedView>
+      )}
+      {askStatus === 'error' && !askResult && (
         <ThemedView type="backgroundElement" style={styles.notice}>
           <ThemedText>Couldn't get an answer: {askError}</ThemedText>
         </ThemedView>
       )}
-      {askStatus === 'success' && askResult && <AnswerCard result={askResult} />}
+      {askStatus === 'error' && askResult && (
+        <ThemedView style={styles.refreshingRow}>
+          <Ionicons name="alert-circle-outline" size={14} color={theme.textSecondary} />
+          <ThemedText type="small" themeColor="textSecondary">
+            Couldn't get a new answer — showing the last one.
+          </ThemedText>
+        </ThemedView>
+      )}
+      {askResult && <AnswerCard result={askResult} />}
     </ThemedView>
   );
 }
@@ -317,5 +367,10 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     borderRadius: Spacing.three,
     gap: Spacing.two,
+  },
+  refreshingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
   },
 });
