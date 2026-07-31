@@ -9,7 +9,6 @@
     "expo-audio": "~57.0.3",
     "expo-constants": "~57.0.7",
     "expo-device": "~57.0.1",
-    "expo-dynamic-app-icon": "^1.2.0",
     "expo-font": "~57.0.1",
     "expo-image": "~57.0.1",
     "expo-linking": "~57.0.4",
@@ -37,7 +36,6 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
-    "patch-package": "^8.0.1",
     "typescript": "~6.0.3"
   },
   "overrides": {
@@ -48,8 +46,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint",
-    "postinstall": "patch-package"
+    "lint": "expo lint"
   },
   "private": true
 }
