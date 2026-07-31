@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Switch } from 'react-native';
+import { useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -10,7 +11,21 @@ import { useAlwaysOnMode } from '@/hooks/use-always-on-mode';
 import { READ_FREQUENCY_OPTIONS_MINUTES, useAlwaysOnFrequency } from '@/hooks/use-always-on-frequency';
 import { useContentMode, type ContentMode } from '@/hooks/use-content-mode';
 import { useReadPreference, type ReadPreference } from '@/hooks/use-read-preference';
+import { APP_ICON_SUPPORTED, getAppIcon, setAppIcon } from '@/services/app-icon';
 import { useTheme } from '@/hooks/use-theme';
+
+type AppIconId = 'gray' | 'white';
+
+interface AppIconOption {
+  id: AppIconId;
+  label: string;
+  source: number;
+}
+
+const APP_ICON_OPTIONS: AppIconOption[] = [
+  { id: 'gray', label: 'Gray (default)', source: require('../../../assets/images/icon.png') },
+  { id: 'white', label: 'White', source: require('../../../assets/images/icon-alt-white.png') },
+];
 
 interface ModeOption {
   id: ContentMode;
@@ -64,7 +79,14 @@ export default function SettingsScreen() {
   const { preference, setPreference } = useReadPreference();
   const { enabled: alwaysOnEnabled, loading: alwaysOnLoading, error: alwaysOnError, setEnabled: setAlwaysOnEnabled } = useAlwaysOnMode();
   const { frequencyMinutes, setFrequencyMinutes } = useAlwaysOnFrequency();
+  const [currentAppIcon, setCurrentAppIcon] = useState<AppIconId>(() => (getAppIcon() === 'white' ? 'white' : 'gray'));
   const theme = useTheme();
+
+  const handleSelectAppIcon = (id: AppIconId) => {
+    if (id === currentAppIcon) return;
+    const result = setAppIcon(id);
+    if (result) setCurrentAppIcon(id);
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -187,6 +209,38 @@ export default function SettingsScreen() {
             </ThemedView>
           </ThemedView>
 
+          {APP_ICON_SUPPORTED && (
+            <>
+              <ThemedText type="smallBold" style={styles.sectionSpacing}>
+                App icon
+              </ThemedText>
+              <ThemedView style={styles.appIconRow}>
+                {APP_ICON_OPTIONS.map((option) => {
+                  const selected = option.id === currentAppIcon;
+                  return (
+                    <Pressable key={option.id} onPress={() => handleSelectAppIcon(option.id)} style={styles.appIconOption}>
+                      <ThemedView
+                        style={[
+                          styles.appIconThumbnailWrap,
+                          { borderColor: selected ? theme.accent : theme.border },
+                        ]}>
+                        <Image source={option.source} style={styles.appIconThumbnail} />
+                        {selected && (
+                          <ThemedView style={[styles.appIconCheck, { backgroundColor: theme.accent }]}>
+                            <Ionicons name="checkmark" size={12} color={theme.accentContrast} />
+                          </ThemedView>
+                        )}
+                      </ThemedView>
+                      <ThemedText type="small" themeColor={selected ? 'text' : 'textSecondary'}>
+                        {option.label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </ThemedView>
+            </>
+          )}
+
           <ThemedText type="smallBold" style={styles.sectionSpacing}>
             Downloads
           </ThemedText>
@@ -276,5 +330,35 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
+  },
+  appIconRow: {
+    flexDirection: 'row',
+    gap: Spacing.four,
+  },
+  appIconOption: {
+    alignItems: 'center',
+    gap: Spacing.one,
+  },
+  appIconThumbnailWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: Spacing.four,
+    borderWidth: 2,
+    padding: Spacing.half,
+  },
+  appIconThumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: Spacing.three,
+  },
+  appIconCheck: {
+    position: 'absolute',
+    bottom: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

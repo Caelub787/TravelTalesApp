@@ -84,7 +84,18 @@
           "recordAudioAndroid": false
         }
       ],
-      "expo-task-manager"
+      "expo-task-manager",
+      [
+        "expo-dynamic-app-icon",
+        {
+          "gray": {
+            "image": "./assets/images/icon.png"
+          },
+          "white": {
+            "image": "./assets/images/icon-alt-white.png"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
