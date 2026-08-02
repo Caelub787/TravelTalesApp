@@ -54,7 +54,24 @@ export function useAskQuestion() {
           question,
           radiusMiles,
         };
-        const response = mode === 'wiki' ? await searchWiki(request) : await askQuestion(request);
+
+        if (mode === 'wiki') {
+          const wikiResponse = await searchWiki(request);
+          if (!wikiResponse.noVerifiedAnswerFound) {
+            setResult(wikiResponse);
+            setStatus('success');
+            return;
+          }
+          // Nothing on Wikipedia nearby matched — fall back to a full AI-grounded answer
+          // (same as Story mode) so Wiki mode still gives a real answer instead of "nothing
+          // found," the same way a normal search engine would.
+          const aiResponse = await askQuestion(request);
+          setResult(aiResponse);
+          setStatus('success');
+          return;
+        }
+
+        const response = await askQuestion(request);
         setResult(response);
         setStatus('success');
       } catch (err) {

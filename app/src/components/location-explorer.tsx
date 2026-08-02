@@ -186,6 +186,37 @@ export function LocationExplorer({
     <ThemedView style={styles.container}>
       <RadiusControl />
 
+      <AskBox disabled={!coords} onSubmit={handleAsk} />
+
+      {askStatus === 'loading' && !askResult && (
+        <ThemedView style={styles.notice}>
+          <ActivityIndicator />
+          <ThemedText themeColor="textSecondary">Looking that up…</ThemedText>
+        </ThemedView>
+      )}
+      {askStatus === 'loading' && askResult && (
+        <ThemedView style={styles.refreshingRow}>
+          <ActivityIndicator size="small" />
+          <ThemedText type="small" themeColor="textSecondary">
+            Looking that up…
+          </ThemedText>
+        </ThemedView>
+      )}
+      {askStatus === 'error' && !askResult && (
+        <ThemedView type="backgroundElement" style={styles.notice}>
+          <ThemedText>Couldn't get an answer: {askError}</ThemedText>
+        </ThemedView>
+      )}
+      {askStatus === 'error' && askResult && (
+        <ThemedView style={styles.refreshingRow}>
+          <Ionicons name="alert-circle-outline" size={14} color={theme.textSecondary} />
+          <ThemedText type="small" themeColor="textSecondary">
+            Couldn't get a new answer — showing the last one.
+          </ThemedText>
+        </ThemedView>
+      )}
+      {askResult && <AnswerCard result={askResult} />}
+
       {mode === 'wiki' && (
         <ThemedView style={styles.offlineRow}>
           <Pressable
@@ -300,37 +331,6 @@ export function LocationExplorer({
       )}
 
       {placesResult && <NearbyPlacesList result={placesResult} />}
-
-      <AskBox disabled={!coords} onSubmit={handleAsk} />
-
-      {askStatus === 'loading' && !askResult && (
-        <ThemedView style={styles.notice}>
-          <ActivityIndicator />
-          <ThemedText themeColor="textSecondary">Looking that up…</ThemedText>
-        </ThemedView>
-      )}
-      {askStatus === 'loading' && askResult && (
-        <ThemedView style={styles.refreshingRow}>
-          <ActivityIndicator size="small" />
-          <ThemedText type="small" themeColor="textSecondary">
-            Looking that up…
-          </ThemedText>
-        </ThemedView>
-      )}
-      {askStatus === 'error' && !askResult && (
-        <ThemedView type="backgroundElement" style={styles.notice}>
-          <ThemedText>Couldn't get an answer: {askError}</ThemedText>
-        </ThemedView>
-      )}
-      {askStatus === 'error' && askResult && (
-        <ThemedView style={styles.refreshingRow}>
-          <Ionicons name="alert-circle-outline" size={14} color={theme.textSecondary} />
-          <ThemedText type="small" themeColor="textSecondary">
-            Couldn't get a new answer — showing the last one.
-          </ThemedText>
-        </ThemedView>
-      )}
-      {askResult && <AnswerCard result={askResult} />}
     </ThemedView>
   );
 }

@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useArticleAsk } from '@/hooks/use-article-ask';
 import { useArticleContent } from '@/hooks/use-article-content';
+import { useLiveLocation } from '@/hooks/use-live-location';
 import { useOfflineArticles } from '@/hooks/use-offline-articles';
 import { useReadPreference } from '@/hooks/use-read-preference';
 import { useSpeakable } from '@/hooks/use-speakable';
@@ -53,13 +54,14 @@ export function WikipediaArticleView({ url, initialTitle, onViewRaw }: Wikipedia
   const [question, setQuestion] = useState('');
   const questionRef = useRef('');
   const { result: askResult, status: askStatus, error: askError, ask } = useArticleAsk();
+  const { coords, placeLabel } = useLiveLocation();
   const lastAskWasVoiceRef = useRef(false);
 
   const submitQuestion = (text: string, viaVoice: boolean) => {
     const trimmed = text.trim();
     if (!trimmed || !result) return;
     lastAskWasVoiceRef.current = viaVoice;
-    ask(result.title, result.extract, trimmed);
+    ask(result.title, result.extract, trimmed, coords, placeLabel);
   };
 
   const { listening, error: voiceError, start, stop } = useVoiceInput(

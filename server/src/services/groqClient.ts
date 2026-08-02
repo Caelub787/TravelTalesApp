@@ -202,17 +202,17 @@ export async function answerArticleQuestion(req: {
   articleTitle: string;
   articleText: string;
   question: string;
-}): Promise<{ answer: string }> {
+}): Promise<{ answer: string; noAnswerFound: boolean }> {
   const { articleTitle, articleText, question } = req;
 
   const systemPrompt = `You are a helpful reading companion inside a travel app called TravelTalesApp. The user is reading an article titled "${articleTitle}" and just asked a question about it.
 
 Rules:
 - Answer using ONLY the article text provided below — do not use outside knowledge or invent anything.
-- If the article doesn't contain the answer, say so honestly instead of guessing.
+- If the article doesn't contain the answer, set noAnswerFound to true and say so honestly instead of guessing.
 - Keep the answer conversational and concise (1-4 sentences) — it may be read aloud back to the user.
 
-Respond with ONLY a JSON object, no other text: { "answer": string }
+Respond with ONLY a JSON object, no other text: { "answer": string, "noAnswerFound": boolean }
 
 Article text:
 """
@@ -221,10 +221,13 @@ ${articleText}
 
   const raw = await groqChat(systemPrompt, question);
   try {
-    const parsed = JSON.parse(raw) as { answer?: string };
-    return { answer: parsed.answer?.trim() || "I couldn't find an answer to that in this article." };
+    const parsed = JSON.parse(raw) as { answer?: string; noAnswerFound?: boolean };
+    if (!parsed.answer?.trim()) {
+      return { answer: "I couldn't find an answer to that in this article.", noAnswerFound: true };
+    }
+    return { answer: parsed.answer.trim(), noAnswerFound: Boolean(parsed.noAnswerFound) };
   } catch {
-    return { answer: "I couldn't find an answer to that in this article." };
+    return { answer: "I couldn't find an answer to that in this article.", noAnswerFound: true };
   }
 }
 

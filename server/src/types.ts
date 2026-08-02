@@ -131,4 +131,5 @@ export interface ArticleAskRequest {
 export interface ArticleAskResponse {
   question: string;
   answer: string;
+  noAnswerFound: boolean;
 }

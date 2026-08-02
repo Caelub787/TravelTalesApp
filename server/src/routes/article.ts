@@ -36,8 +36,8 @@ articleRouter.post("/article-ask", async (req, res) => {
   }
 
   try {
-    const { answer } = await answerArticleQuestion({ articleTitle, articleText, question: question.trim() });
-    res.json({ question: question.trim(), answer });
+    const { answer, noAnswerFound } = await answerArticleQuestion({ articleTitle, articleText, question: question.trim() });
+    res.json({ question: question.trim(), answer, noAnswerFound });
   } catch (err) {
     console.error("Failed to answer article question:", err);
     res.status(502).json({ error: describeAiError(err, "Failed to get an AI answer") });

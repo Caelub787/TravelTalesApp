@@ -93,6 +93,7 @@ export interface ArticleAskRequest {
 export interface ArticleAskResponse {
   question: string;
   answer: string;
+  noAnswerFound: boolean;
 }
 
 export interface NearbyPlacesRequest {
