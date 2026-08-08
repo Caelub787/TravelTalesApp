@@ -20,7 +20,8 @@
         "googleMapsApiKey": "AIzaSyA5Zgtw92-CnoRRknqjckk1L17m8MEELHA"
       },
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Travel Tales doesn't use your photo library directly — this is required by a library the app depends on."
       }
     },
     "android": {
@@ -80,8 +81,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": false,
-          "recordAudioAndroid": false
+          "microphonePermission": "Travel Tales uses your microphone to let you ask questions about where you are out loud."
         }
       ],
       "expo-task-manager"
